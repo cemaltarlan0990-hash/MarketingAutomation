@@ -1,0 +1,16 @@
+.vs/
+bin/
+obj/
+packages/
+*.user
+*.suo
+*.userprefs
+Web.local.config
+*.publishsettings
+local.settings.json
+appsettings.Development.json
+TestResults/
+*.trx
+.dotnet-cli/
+.nuget-packages/
+.artifacts/

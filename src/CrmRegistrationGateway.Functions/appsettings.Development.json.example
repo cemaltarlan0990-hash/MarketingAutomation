@@ -1,0 +1,13 @@
+{
+  "Crm": {
+    "Url": "https://xxxxx.crm4.dynamics.com",
+    "TenantId": "YOUR_TENANT_ID",
+    "ClientId": "YOUR_CLIENT_ID",
+    "ClientSecret": "YOUR_CLIENT_SECRET",
+    "ApiVersion": "v9.2",
+    "RequestTimeoutSeconds": 30
+  },
+  "ApiSecurity": {
+    "InboundApiKey": "USE_AT_LEAST_32_RANDOM_CHARACTERS"
+  }
+}
