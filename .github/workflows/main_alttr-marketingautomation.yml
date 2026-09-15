@@ -1,55 +1,44 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy ASP.Net Core app to Azure Web App - ALTTR-MarketingAutomation
-
+name: Build, test and deploy ALTTR Marketing Automation
 on:
   push:
     branches:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+env:
+  AZURE_WEBAPP_NAME: ALTTR-MarketingAutomation
+  API_PROJECT: src/CrmRegistrationGateway.Functions/CrmRegistrationGateway.Api.csproj
+  TEST_PROJECT: tests/CrmRegistrationGateway.Functions.Tests/CrmRegistrationGateway.Functions.Tests.csproj
+  PUBLISH_DIRECTORY: ${{ github.workspace }}/publish
+
 jobs:
-  build:
-    runs-on: windows-latest
-    permissions:
-      contents: read #This is required for actions/checkout
+  build-test-deploy:
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Set up .NET Core
+      - name: Set up .NET 8
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          dotnet-version: 8.0.x
 
-      - name: Build with dotnet
-        run: dotnet build --configuration Release
+      - name: Restore
+        run: dotnet restore "${{ env.TEST_PROJECT }}"
 
-      - name: dotnet publish
-        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+      - name: Test
+        run: dotnet test "${{ env.TEST_PROJECT }}" --configuration Release --no-restore
 
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v4
-        with:
-          name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+      - name: Publish
+        run: dotnet publish "${{ env.API_PROJECT }}" --configuration Release --no-restore --output "${{ env.PUBLISH_DIRECTORY }}"
 
-  deploy:
-    runs-on: windows-latest
-    needs: build
-    
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v4
-        with:
-          name: .net-app
-      
       - name: Deploy to Azure Web App
-        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'ALTTR-MarketingAutomation'
-          slot-name: 'Production'
-          package: .
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: ${{ env.PUBLISH_DIRECTORY }}
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_3A3106BB13374E41A1500F82068A4FFF }}
