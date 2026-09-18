@@ -71,7 +71,7 @@ noktada `Configuration/CrmFieldMapping.cs` dosyasında bulunur.
 
 ```bash
 curl --request POST \
-  "https://alttr-marketingautomation.azurewebsites.net/api/crm/leads" \
+  "https://alttr-marketingautomation-f9dmgackdme4gueu.westeurope-01.azurewebsites.net/api/crm/leads" \
   --header "Content-Type: application/json" \
   --header "X-Integration-Key: <INBOUND_API_KEY>" \
   --data '{
@@ -136,6 +136,18 @@ App Service üzerinde ayrıca:
 - Application Insights bağlı olmalı.
 - Credential değerleri GitHub workflow dosyasına veya kaynak koda yazılmamalı.
 - Production'da `CLIENT_SECRET` için Key Vault reference tercih edilmelidir.
+
+## Azure uygulama günlükleri
+
+Uygulama, `AddAzureWebAppDiagnostics()` ile App Service dosya günlüklerine
+yazar. Azure Portal'da **Monitoring → App Service logs → Application Logging
+(Filesystem)** ayarını açın, düzeyi **Information** seçip kaydedin. Sonra
+**Monitoring → Log stream** ekranı açıkken bir test isteği gönderin. Filesystem
+logging geçici bir tanılama ayarıdır ve Azure tarafından 12 saat sonra kapatılır.
+
+CRM token hatasında `Dataverse authentication service error` satırındaki
+`ErrorCode`, `StatusCode` ve varsa `IdentityCode` alanlarını inceleyin. Kimlik
+doğrulama günlükleri secret, API anahtarı veya erişim token'ı içermez.
 
 ## Dataverse hazırlığı
 

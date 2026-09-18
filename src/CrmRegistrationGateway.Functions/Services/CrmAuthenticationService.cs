@@ -45,10 +45,14 @@ public sealed class CrmAuthenticationService : ICrmAuthenticationService
         }
         catch (MsalServiceException exception)
         {
+            // Record only the structured identity error code, never the full message or credentials.
+            var identityCode = System.Text.RegularExpressions.Regex.Match(
+                exception.Message, @"\bAADSTS\d+\b").Value;
             _logger.LogError(
-                "Dataverse authentication service error. ErrorCode={ErrorCode}; StatusCode={StatusCode}",
+                "Dataverse authentication service error. ErrorCode={ErrorCode}; StatusCode={StatusCode}; IdentityCode={IdentityCode}",
                 exception.ErrorCode,
-                exception.StatusCode);
+                exception.StatusCode,
+                string.IsNullOrEmpty(identityCode) ? "unavailable" : identityCode);
             throw new CrmAuthenticationException("Dataverse authentication failed.", exception);
         }
         catch (MsalClientException exception)
