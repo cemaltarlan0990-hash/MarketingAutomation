@@ -14,3 +14,4 @@ TestResults/
 .dotnet-cli/
 .nuget-packages/
 .artifacts/
+artifacts/crm-import/

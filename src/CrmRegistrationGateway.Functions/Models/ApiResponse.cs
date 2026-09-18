@@ -21,6 +21,10 @@ public sealed class ApiResponse
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyDictionary<string, string[]>? Errors { get; init; }
 
+    [JsonPropertyName("authentication")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public CrmAuthenticationDiagnostic? Authentication { get; init; }
+
     [JsonPropertyName("correlationId")]
     public required string CorrelationId { get; init; }
 }

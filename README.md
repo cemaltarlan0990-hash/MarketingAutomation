@@ -149,6 +149,13 @@ CRM token hatasında `Dataverse authentication service error` satırındaki
 `ErrorCode`, `StatusCode` ve varsa `IdentityCode` alanlarını inceleyin. Kimlik
 doğrulama günlükleri secret, API anahtarı veya erişim token'ı içermez.
 
+Token alınamazsa, API'nin yetkili isteğe verdiği hata yanıtında `authentication`
+nesnesi bulunur: `errorCode`, varsa `identityCode` (AADSTS kodu),
+`tokenHttpStatus` ve `recommendedAction`. Ham Microsoft hata mesajı veya yanıt
+gövdesi dışarı verilmez. Yerel JSON aktarım aracı bu alanları doğrudan ekranda
+gösterir ve sonuç CSV'sine kaydeder. Bilinen aktarım hatasında uzun PowerShell
+hata yığını yerine açıklama gösterip çıkış kodu 1 ile sonlanır.
+
 ## Dataverse hazırlığı
 
 1. App Registration'ın client ID'siyle test Dataverse ortamında Application User

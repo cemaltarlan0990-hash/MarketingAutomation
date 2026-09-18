@@ -85,12 +85,19 @@ public static class CrmLeadEndpoints
                     HttpStatusCode.Created,
                     Success("created", result.CrmId, "Lead successfully created.", correlationId));
         }
-        catch (CrmAuthenticationException)
+        catch (CrmAuthenticationException exception)
         {
             logger.LogError("CRM authentication failed. CorrelationId={CorrelationId}", correlationId);
             return Json(
                 HttpStatusCode.BadGateway,
-                Error("authentication_error", "CRM authentication failed.", correlationId));
+                new ApiResponse
+                {
+                    Success = false,
+                    Status = "authentication_error",
+                    Message = "CRM authentication failed.",
+                    CorrelationId = correlationId,
+                    Authentication = exception.Diagnostic
+                });
         }
         catch (CrmApiException exception) when (
             exception.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)

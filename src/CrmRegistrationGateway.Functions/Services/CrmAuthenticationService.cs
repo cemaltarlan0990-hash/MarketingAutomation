@@ -1,5 +1,6 @@
 using CrmRegistrationGateway.Configuration;
 using CrmRegistrationGateway.Infrastructure;
+using CrmRegistrationGateway.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Client;
 
@@ -45,22 +46,21 @@ public sealed class CrmAuthenticationService : ICrmAuthenticationService
         }
         catch (MsalServiceException exception)
         {
-            // Record only the structured identity error code, never the full message or credentials.
-            var identityCode = System.Text.RegularExpressions.Regex.Match(
-                exception.Message, @"\bAADSTS\d+\b").Value;
+            var diagnostic = CrmAuthenticationDiagnostic.FromException(exception);
             _logger.LogError(
                 "Dataverse authentication service error. ErrorCode={ErrorCode}; StatusCode={StatusCode}; IdentityCode={IdentityCode}",
-                exception.ErrorCode,
-                exception.StatusCode,
-                string.IsNullOrEmpty(identityCode) ? "unavailable" : identityCode);
-            throw new CrmAuthenticationException("Dataverse authentication failed.", exception);
+                diagnostic.ErrorCode,
+                diagnostic.TokenHttpStatus,
+                diagnostic.IdentityCode ?? "unavailable");
+            throw new CrmAuthenticationException("Dataverse authentication failed.", exception, diagnostic);
         }
         catch (MsalClientException exception)
         {
+            var diagnostic = CrmAuthenticationDiagnostic.FromException(exception);
             _logger.LogError(
                 "Dataverse authentication client error. ErrorCode={ErrorCode}",
-                exception.ErrorCode);
-            throw new CrmAuthenticationException("Dataverse authentication failed.", exception);
+                diagnostic.ErrorCode);
+            throw new CrmAuthenticationException("Dataverse authentication failed.", exception, diagnostic);
         }
     }
 }
