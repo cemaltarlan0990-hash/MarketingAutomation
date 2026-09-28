@@ -1,6 +1,5 @@
 using System;
 using Microsoft.Xrm.Sdk;
-using Microsoft.Xrm.Tooling.Connector;
 using RelatedEntegrasyonu.CrmGateway.Configuration;
 
 namespace RelatedEntegrasyonu.CrmGateway.Services
@@ -37,19 +36,7 @@ namespace RelatedEntegrasyonu.CrmGateway.Services
             CrmOptions options,
             Func<IOrganizationService, TResult> operation)
         {
-            using (var client = new CrmServiceClient(options.BuildConnectionString()))
-            {
-                if (!client.IsReady)
-                {
-                    throw new InvalidOperationException(
-                        "CRM connection could not be established.",
-                        client.LastCrmException);
-                }
-
-                // The client itself implements IOrganizationService. The operation
-                // completes before the client is disposed, so no disposed proxy escapes.
-                return operation(client);
-            }
+            return RelatedEntegrasyonu.AltiumService.GetService().Execute(operation);
         }
     }
 }

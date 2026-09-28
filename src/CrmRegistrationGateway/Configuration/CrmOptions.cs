@@ -11,6 +11,7 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
         public string ClientId { get; private set; }
         public string ClientSecret { get; private set; }
         public string TenantId { get; private set; }
+        public string UserKey { get; private set; }
         public string EnvironmentName { get; private set; }
         public string AllowedHost { get; private set; }
         public bool WritesEnabled { get; private set; }
@@ -27,21 +28,24 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
         {
             return new CrmOptions
             {
-                Url = Read("CRM_URL", "Crm.Url"),
-                ClientId = Read("CRM_CLIENT_ID", "Crm.ClientId"),
-                ClientSecret = Read("CRM_CLIENT_SECRET", "Crm.ClientSecret"),
-                TenantId = Read("CRM_TENANT_ID", "Crm.TenantId"),
-                EnvironmentName = Read("CRM_ENVIRONMENT", "Crm.EnvironmentName"),
-                AllowedHost = Read("CRM_ALLOWED_HOST", "Crm.AllowedHost"),
-                WritesEnabled = ReadBoolean("CRM_WRITES_ENABLED", "Crm.WritesEnabled"),
-                InboundApiKey = Read("CRM_INBOUND_API_KEY", "Crm.InboundApiKey"),
+                // The first app-setting names preserve the naming convention used by
+                // the existing Related/Altium code. The Crm.* names remain supported.
+                Url = Read(new[] { "CRM_URL" }, "crmserverurlaltium", "Crm.Url"),
+                UserKey = Read(new[] { "CRM_USER_KEY" }, "crmuseraltium", "Crm.UserKey"),
+                ClientId = Read(new[] { "CRM_CLIENT_ID", "CLIENT_ID" }, "Crm.ClientId"),
+                ClientSecret = Read(new[] { "CRM_CLIENT_SECRET", "CLIENT_SECRET" }, "Crm.ClientSecret"),
+                TenantId = Read(new[] { "CRM_TENANT_ID", "TENANT_ID" }, "Crm.TenantId"),
+                EnvironmentName = Read(new[] { "CRM_ENVIRONMENT" }, "Crm.EnvironmentName"),
+                AllowedHost = Read(new[] { "CRM_ALLOWED_HOST" }, "Crm.AllowedHost"),
+                WritesEnabled = ReadBoolean(new[] { "CRM_WRITES_ENABLED" }, "Crm.WritesEnabled"),
+                InboundApiKey = Read(new[] { "CRM_INBOUND_API_KEY", "INBOUND_API_KEY" }, "Crm.InboundApiKey"),
 
-                TargetEntity = Read("CRM_TARGET_ENTITY", "Crm.TargetEntityLogicalName"),
-                FirstNameAttribute = Read("CRM_FIRSTNAME_ATTRIBUTE", "Crm.FirstNameAttribute"),
-                LastNameAttribute = Read("CRM_LASTNAME_ATTRIBUTE", "Crm.LastNameAttribute"),
-                EmailAttribute = Read("CRM_EMAIL_ATTRIBUTE", "Crm.EmailAttribute"),
-                PhoneAttribute = Read("CRM_PHONE_ATTRIBUTE", "Crm.PhoneAttribute"),
-                CompanyAttribute = Read("CRM_COMPANY_ATTRIBUTE", "Crm.CompanyAttribute")
+                TargetEntity = Read(new[] { "CRM_TARGET_ENTITY" }, "Crm.TargetEntityLogicalName"),
+                FirstNameAttribute = Read(new[] { "CRM_FIRSTNAME_ATTRIBUTE" }, "Crm.FirstNameAttribute"),
+                LastNameAttribute = Read(new[] { "CRM_LASTNAME_ATTRIBUTE" }, "Crm.LastNameAttribute"),
+                EmailAttribute = Read(new[] { "CRM_EMAIL_ATTRIBUTE" }, "Crm.EmailAttribute"),
+                PhoneAttribute = Read(new[] { "CRM_PHONE_ATTRIBUTE" }, "Crm.PhoneAttribute"),
+                CompanyAttribute = Read(new[] { "CRM_COMPANY_ATTRIBUTE" }, "Crm.CompanyAttribute")
             };
         }
 
@@ -100,6 +104,13 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
             builder["ClientId"] = ClientId;
             builder["ClientSecret"] = ClientSecret;
             builder["SkipDiscovery"] = true;
+            builder["RequireNewInstance"] = true;
+            builder["LoginPrompt"] = "Never";
+
+            // Kept for compatibility with the reference Altium connection config.
+            // ClientId, not UserName, determines the Dataverse application user.
+            if (!string.IsNullOrWhiteSpace(UserKey))
+                builder["UserName"] = UserKey;
 
             if (!string.IsNullOrWhiteSpace(TenantId))
                 builder["TenantId"] = TenantId;
@@ -107,18 +118,32 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
             return builder.ConnectionString;
         }
 
-        private static string Read(string environmentVariable, string appSetting)
+        private static string Read(string[] environmentVariables, params string[] appSettings)
         {
-            string value = Environment.GetEnvironmentVariable(environmentVariable);
+            string value = null;
+            foreach (string environmentVariable in environmentVariables)
+            {
+                value = Environment.GetEnvironmentVariable(environmentVariable);
+                if (!string.IsNullOrWhiteSpace(value))
+                    break;
+            }
+
             if (string.IsNullOrWhiteSpace(value))
-                value = ConfigurationManager.AppSettings[appSetting];
+            {
+                foreach (string appSetting in appSettings)
+                {
+                    value = ConfigurationManager.AppSettings[appSetting];
+                    if (!string.IsNullOrWhiteSpace(value))
+                        break;
+                }
+            }
 
             return value == null ? null : value.Trim();
         }
 
-        private static bool ReadBoolean(string environmentVariable, string appSetting)
+        private static bool ReadBoolean(string[] environmentVariables, params string[] appSettings)
         {
-            string value = Read(environmentVariable, appSetting);
+            string value = Read(environmentVariables, appSettings);
             bool parsed;
             return bool.TryParse(value, out parsed) && parsed;
         }

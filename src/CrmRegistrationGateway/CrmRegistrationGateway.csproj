@@ -74,6 +74,7 @@
     <Compile Include="Infrastructure\RequestValidationException.cs" />
     <Compile Include="Models\CrmRegistrationRequest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Services\AltiumService.cs" />
     <Compile Include="Services\CrmConnection.cs" />
     <Compile Include="Services\CrmRegistrationWriter.cs" />
     <Compile Include="TestCrmConnection.aspx.cs">

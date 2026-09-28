@@ -1,4 +1,4 @@
-name: Build, test and deploy ALTTR Marketing Automation
+name: Build, test and deploy ASPX
 on:
   push:
     branches:
@@ -8,37 +8,43 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: alttr-marketingautomation-deployment
+  cancel-in-progress: false
+
 env:
   AZURE_WEBAPP_NAME: ALTTR-MarketingAutomation
-  API_PROJECT: src/CrmRegistrationGateway.Functions/CrmRegistrationGateway.Api.csproj
-  TEST_PROJECT: tests/CrmRegistrationGateway.Functions.Tests/CrmRegistrationGateway.Functions.Tests.csproj
-  PUBLISH_DIRECTORY: ${{ github.workspace }}/publish
+  ASPX_PACKAGE_DIRECTORY: ${{ github.workspace }}/.artifacts/aspx-package
+  APP_BASE_URL: https://alttr-marketingautomation-f9dmgackdme4gueu.westeurope-01.azurewebsites.net
 
 jobs:
   build-test-deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-2022
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: pwsh
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up .NET 8
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
+      - name: Build ASPX package
+        run: ./scripts/Build-AspxPackage.ps1 -OutputDirectory "${{ env.ASPX_PACKAGE_DIRECTORY }}" -EnableCrmWrites
 
-      - name: Restore
-        run: dotnet restore "${{ env.TEST_PROJECT }}"
+      - name: Test ASPX package in IIS Express
+        run: ./scripts/Test-AspxPackage.ps1 -PackageRoot "${{ env.ASPX_PACKAGE_DIRECTORY }}/wwwroot"
 
-      - name: Test
-        run: dotnet test "${{ env.TEST_PROJECT }}" --configuration Release --no-restore
-
-      - name: Publish
-        run: dotnet publish "${{ env.API_PROJECT }}" --configuration Release --no-restore --output "${{ env.PUBLISH_DIRECTORY }}"
+      - name: Stamp deployment version
+        run: |
+          Set-Content -LiteralPath "$env:ASPX_PACKAGE_DIRECTORY/wwwroot/deployment-version.txt" -Value $env:GITHUB_SHA -Encoding utf8
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          package: ${{ env.PUBLISH_DIRECTORY }}
+          package: ${{ env.ASPX_PACKAGE_DIRECTORY }}/wwwroot
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_3A3106BB13374E41A1500F82068A4FFF }}
+
+      - name: Verify deployed ASPX
+        run: ./scripts/Test-AspxDeployment.ps1 -BaseUrl "$env:APP_BASE_URL" -ExpectedCommit "$env:GITHUB_SHA"
