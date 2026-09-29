@@ -28,6 +28,19 @@ for ($attempt = 1; $attempt -le 18; $attempt++) {
             $body = $response.Content | ConvertFrom-Json
             if ($body.success -ne $false -or -not $body.correlationId) { throw 'The ASPX JSON response was not valid.' }
         }
+        $eventEndpoint = "$BaseUrl/EtkinlikKayit.aspx"
+        $eventChecks = @(
+            @{ Method = 'Get'; Expected = 405 },
+            @{ Method = 'Post'; Expected = 401; ContentType = 'application/json'; Body = '{"adSoyad":"Test"}' }
+        )
+        foreach ($check in $eventChecks) {
+            $request = @{ Uri = $eventEndpoint; Method = $check.Method; SkipHttpErrorCheck = $true; TimeoutSec = 15 }
+            if ($check.ContainsKey('ContentType')) { $request.ContentType = $check.ContentType; $request.Body = $check.Body }
+            $response = Invoke-WebRequest @request
+            if ($response.StatusCode -ne $check.Expected) { throw "EtkinlikKayit HTTP check expected $($check.Expected), received $($response.StatusCode)." }
+            $body = $response.Content | ConvertFrom-Json
+            if ($body.success -ne $false -or -not $body.correlationId) { throw 'The EtkinlikKayit JSON response was not valid.' }
+        }
         $connectionTest = Invoke-WebRequest "$BaseUrl/TestCrmConnection.aspx" -Method Post -SkipHttpErrorCheck -TimeoutSec 15
         if ($connectionTest.StatusCode -ne 401 -or ($connectionTest.Content | ConvertFrom-Json).success -ne $false) {
             throw 'The deployed connection-test endpoint must require an API key.'

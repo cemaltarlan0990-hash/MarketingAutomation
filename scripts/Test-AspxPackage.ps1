@@ -12,10 +12,13 @@ $PackageRoot = (Resolve-Path -LiteralPath $PackageRoot).Path
 $logDirectory = Split-Path -Parent $PackageRoot
 $apiKey = [Guid]::NewGuid().ToString('N') + [Guid]::NewGuid().ToString('N')
 $previousApiKey = $env:CRM_INBOUND_API_KEY
+$eventApiKey = [Guid]::NewGuid().ToString('N') + [Guid]::NewGuid().ToString('N')
+$previousEventApiKey = $env:CRM_EVENT_API_KEY
 $previousWriteSetting = $env:CRM_WRITES_ENABLED
 $iisProcess = $null
 try {
     $env:CRM_INBOUND_API_KEY = $apiKey
+    $env:CRM_EVENT_API_KEY = $eventApiKey
     $env:CRM_WRITES_ENABLED = 'false'
     $iisProcess = Start-Process -FilePath $iisPath -ArgumentList @("/path:`"$PackageRoot`"", "/port:$Port", '/systray:false') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $logDirectory 'iis.stdout.log') -RedirectStandardError (Join-Path $logDirectory 'iis.stderr.log')
     $baseUrl = "http://localhost:$Port"
@@ -29,9 +32,10 @@ try {
         Start-Sleep -Seconds 1
     }
     if (-not $ready) { throw 'ASPX endpoint did not start in IIS Express.' }
-    & (Join-Path $PSScriptRoot 'Test-EndpointContract.ps1') -BaseUrl $baseUrl -ApiKey $apiKey
+    & (Join-Path $PSScriptRoot 'Test-EndpointContract.ps1') -BaseUrl $baseUrl -ApiKey $apiKey -EventApiKey $eventApiKey
 } finally {
     if ($iisProcess -and -not $iisProcess.HasExited) { Stop-Process -Id $iisProcess.Id }
     $env:CRM_INBOUND_API_KEY = $previousApiKey
+    $env:CRM_EVENT_API_KEY = $previousEventApiKey
     $env:CRM_WRITES_ENABLED = $previousWriteSetting
 }

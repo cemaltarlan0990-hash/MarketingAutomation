@@ -17,12 +17,32 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
         public bool WritesEnabled { get; private set; }
         public string InboundApiKey { get; private set; }
 
+        // EtkinlikKayit.aspx (Power Automate) için ayrı anahtar.
+        public string EventApiKey { get; private set; }
+
         public string TargetEntity { get; private set; }
         public string FirstNameAttribute { get; private set; }
         public string LastNameAttribute { get; private set; }
         public string EmailAttribute { get; private set; }
         public string PhoneAttribute { get; private set; }
         public string CompanyAttribute { get; private set; }
+
+        // İsteğe bağlı eşlemeler (EtkinlikKayit.aspx). Tanımlı değillerse bu bilgiler
+        // Lead açıklamasına yazılır.
+        public string JobTitleAttribute { get; private set; }
+        public string CityLookupAttribute { get; private set; }
+        public string CityEntity { get; private set; }
+        public string CityNameAttribute { get; private set; }
+
+        public bool HasCityLookup
+        {
+            get
+            {
+                return !string.IsNullOrWhiteSpace(CityLookupAttribute) &&
+                       !string.IsNullOrWhiteSpace(CityEntity) &&
+                       !string.IsNullOrWhiteSpace(CityNameAttribute);
+            }
+        }
 
         public static CrmOptions Load()
         {
@@ -39,13 +59,19 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
                 AllowedHost = Read(new[] { "CRM_ALLOWED_HOST" }, "Crm.AllowedHost"),
                 WritesEnabled = ReadBoolean(new[] { "CRM_WRITES_ENABLED" }, "Crm.WritesEnabled"),
                 InboundApiKey = Read(new[] { "CRM_INBOUND_API_KEY", "INBOUND_API_KEY" }, "Crm.InboundApiKey"),
+                EventApiKey = Read(new[] { "CRM_EVENT_API_KEY", "EtkinlikApiKey" }, "Crm.EventApiKey", "EtkinlikApiKey"),
 
                 TargetEntity = Read(new[] { "CRM_TARGET_ENTITY" }, "Crm.TargetEntityLogicalName"),
                 FirstNameAttribute = Read(new[] { "CRM_FIRSTNAME_ATTRIBUTE" }, "Crm.FirstNameAttribute"),
                 LastNameAttribute = Read(new[] { "CRM_LASTNAME_ATTRIBUTE" }, "Crm.LastNameAttribute"),
                 EmailAttribute = Read(new[] { "CRM_EMAIL_ATTRIBUTE" }, "Crm.EmailAttribute"),
                 PhoneAttribute = Read(new[] { "CRM_PHONE_ATTRIBUTE" }, "Crm.PhoneAttribute"),
-                CompanyAttribute = Read(new[] { "CRM_COMPANY_ATTRIBUTE" }, "Crm.CompanyAttribute")
+                CompanyAttribute = Read(new[] { "CRM_COMPANY_ATTRIBUTE" }, "Crm.CompanyAttribute"),
+
+                JobTitleAttribute = Read(new[] { "CRM_JOBTITLE_ATTRIBUTE" }, "Crm.JobTitleAttribute"),
+                CityLookupAttribute = Read(new[] { "CRM_CITY_LOOKUP_ATTRIBUTE" }, "Crm.CityLookupAttribute"),
+                CityEntity = Read(new[] { "CRM_CITY_ENTITY" }, "Crm.CityEntityLogicalName"),
+                CityNameAttribute = Read(new[] { "CRM_CITY_NAME_ATTRIBUTE" }, "Crm.CityNameAttribute")
             };
         }
 

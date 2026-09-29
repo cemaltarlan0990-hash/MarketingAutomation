@@ -46,7 +46,7 @@ $null = New-Item -ItemType Directory -Path $packageBin -Force
 
 # Package compiled runtime files only. Do not copy source, local settings,
 # generated DLL config files, publish credentials, or participant data.
-foreach ($page in @('CreateCrmRegistration.aspx', 'TestCrmConnection.aspx')) {
+foreach ($page in @('CreateCrmRegistration.aspx', 'TestCrmConnection.aspx', 'EtkinlikKayit.aspx')) {
     Copy-Item -LiteralPath (Join-Path $webRoot $page) -Destination $packageRoot
 }
 Get-ChildItem -LiteralPath (Join-Path $webRoot 'bin') -File -Filter '*.dll' |
