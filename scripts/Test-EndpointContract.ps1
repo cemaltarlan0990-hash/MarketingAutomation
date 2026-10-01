@@ -36,7 +36,7 @@ Invoke-Check `
 Invoke-Check `
     -Name "Yanlış Content-Type reddediliyor" `
     -ExpectedStatus 415 `
-    -Request @{ Uri = $uri; Method = "Post"; ContentType = "application/json"; Body = "{}" }
+    -Request @{ Uri = $uri; Method = "Post"; ContentType = "text/plain"; Body = "{}" }
 
 Invoke-Check `
     -Name "Anahtarsız POST reddediliyor" `
@@ -61,6 +61,21 @@ Invoke-Check `
             email = "contract-test@example.invalid"
         }
     }
+
+foreach ($case in @(
+    @{ Name = 'JSON: Anahtarsız istek'; Status = 401; Headers = @{}; Body = '{}' },
+    @{ Name = 'JSON: Yanlış anahtar'; Status = 401; Headers = @{ 'X-Integration-Key' = 'wrong-key' }; Body = '{}' },
+    @{ Name = 'JSON: Bozuk gövde'; Status = 400; Headers = @{ 'X-Integration-Key' = $ApiKey }; Body = '{' },
+    @{ Name = 'JSON: Onay eksik'; Status = 400; Headers = @{ 'X-Integration-Key' = $ApiKey }; Body = '{"firstName":"Test"}' },
+    @{ Name = 'JSON: Honeypot'; Status = 403; Headers = @{ 'X-Integration-Key' = $ApiKey }; Body = '{"website":"spam"}' },
+    @{ Name = 'JSON: Büyük gövde'; Status = 413; Headers = @{ 'X-Integration-Key' = $ApiKey }; Body = ('x' * 17000) },
+    @{ Name = 'JSON: Yanlış etkinlik adresi'; Status = 400; Headers = @{ 'X-Integration-Key' = $ApiKey }; Body = '{"consent":true,"firstName":"Test","lastName":"Katilimci","email":"test@example.invalid","eventTitle":"Test","eventUrl":"https://other.example/tr/etkinlik-kayit/test"}' },
+    @{ Name = 'JSON: CAPTCHA olmadan geçerli alanlar CRM aşamasına ulaşır'; Status = 503; Headers = @{ 'X-Integration-Key' = $ApiKey }; Body = '{"consent":true,"firstName":"Test","lastName":"Katilimci","email":"test@example.invalid","eventTitle":"TEST Kayıttır Silmeyin","eventUrl":"https://altium.net/tr/etkinlik-kayit/test-kayittir-silmeyin"}' }
+)) {
+    Invoke-Check -Name $case.Name -ExpectedStatus $case.Status -Request @{
+        Uri = $uri; Method = 'Post'; ContentType = 'application/json'; Headers = $case.Headers; Body = $case.Body
+    }
+}
 
 # EtkinlikKayit.aspx: Power Automate etkinlik kaydı endpoint'i (JSON + x-api-key)
 $eventUri = $BaseUrl.TrimEnd('/') + "/EtkinlikKayit.aspx"

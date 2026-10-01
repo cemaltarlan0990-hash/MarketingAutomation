@@ -1,5 +1,9 @@
 # Web formu → ASPX → CRM Lead
 
+Mevcut `INBOUND_API_KEY` ile site sunucusundan gönderim için
+[EVENT_SERVER_FORWARDING.md](EVENT_SERVER_FORWARDING.md) belgesini uygulayın.
+Aşağıdaki bölüm doğrudan tarayıcıdan gönderim seçeneğini anlatır.
+
 Yeni giriş aynı .NET Framework 4.8 uygulamasında `POST /WebLead.aspx` adresidir.
 Tarayıcı JSON gönderir. Bu sayfa doğrulamadan sonra mevcut `CrmConnection` ve
 `CrmRegistrationWriter` koduyla Lead oluşturur. Yeni Node.js servisi gerekmez.

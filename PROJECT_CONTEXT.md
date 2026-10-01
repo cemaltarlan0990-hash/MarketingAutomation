@@ -1,11 +1,21 @@
 # Proje Bağlamı: ALTTR Marketing Automation
 
-Son güncelleme: 2026-10-01
+Son güncelleme: 2026-10-02
 
 Bu dosya, proje üzerinde sonraki çalışmalarda mevcut durumu hızlıca hatırlamak için
 tutulur. Parola, token, client secret veya API anahtarı içermez ve içermemelidir.
 
-## Güncel durum: 2026-10-01 — Gerçek etkinlik formu için hazır değişiklikler
+## Güncel durum: 2026-10-02 — Mevcut anahtarla site sunucusundan aktarım
+
+- Kullanıcı mevcut çalışan CRM bağlantısı ve INBOUND_API_KEY ile gerçek form verilerinin aktarılmasını istedi.
+- CreateCrmRegistration.aspx artık X-Integration-Key doğrulamasından sonra JSON form payload'ını kabul eder; eski form-urlencoded girişi korunur.
+- Authenticated JSON yolunda CAPTCHA yeniden doğrulanmaz; bunu mevcut site sunucusu çağrıdan önce yapmalıdır. WebLead.aspx'in halka açık doğrulaması değiştirilmedi.
+- Siteye uygulanacak PHP/cURL yardımcı örnek examples/web-form/forward-event-to-crm.php; site kaynağı depoda olmadığı için gerçek işleyiciye kurulmuş değildir. PHP çalışma zamanı yerelde bulunmadığı için bu örnek çalıştırılmadı.
+- Kurulum belgesi docs/EVENT_SERVER_FORWARDING.md. Mevcut anahtar site sunucusu yapılandırmasından alınmalı; tarayıcıya veya GitHub'a yazılmamalı.
+- Release derleme, 55 model/eşleme ve 29 IIS Express HTTP kontrolü geçti. Testlerde CRM'e istek gönderilmedi. Bu yeni değişiklikler henüz commit/push/deploy edilmedi.
+- Önceki çalışma 7ec0e20 commit'iyle GitHub'a gönderildi; kullanıcı önceki Azure deploy'un başarılı olduğunu bildirdi.
+
+## Önceki çalışma: 2026-10-01 — Gerçek etkinlik formu için hazır değişiklikler
 
 - Kullanıcı kodların bu klasörde hazırlanmasını istedi; GitHub push işlemini
   kendisi yapacak. Commit/push/deploy yapılmadı.

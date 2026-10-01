@@ -1,5 +1,10 @@
 # Altium etkinlik formu: GitHub → Azure → CRM
 
+Mevcut anahtarlı servisi kullanarak site sunucusundan aktarım yapmak için önce
+[EVENT_SERVER_FORWARDING.md](EVENT_SERVER_FORWARDING.md) adımlarını uygulayın.
+Aşağıdaki bölüm, ayrı bir seçenek olan tarayıcıdan doğrudan `WebLead.aspx`
+çağrısını anlatır; bu seçenek Azure tarafında CAPTCHA doğrulaması gerektirir.
+
 Bu değişiklik aynı .NET Framework 4.8 ASPX uygulamasını kullanır.
 Gerçek `reg-form-app` formunun JSON'u `WebLead.aspx` sayfasına gönderilir;
 mevcut CRM bağlantısı TEST Dataverse ortamında Lead oluşturur.

@@ -26,12 +26,11 @@ namespace RelatedEntegrasyonu.CrmGateway
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(Request.ContentType) ||
-                !Request.ContentType.StartsWith(
-                    "application/x-www-form-urlencoded",
-                    StringComparison.OrdinalIgnoreCase))
+            string mediaType = (Request.ContentType ?? "").Split(';')[0].Trim();
+            bool isJson = string.Equals(mediaType, "application/json", StringComparison.OrdinalIgnoreCase);
+            if (!isJson && !string.Equals(mediaType, "application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
             {
-                WriteJson(415, false, "Content-Type application/x-www-form-urlencoded olmalıdır.", null, correlationId);
+                WriteJson(415, false, "Content-Type application/json veya application/x-www-form-urlencoded olmalıdır.", null, correlationId);
                 return;
             }
 
@@ -44,13 +43,35 @@ namespace RelatedEntegrasyonu.CrmGateway
                     return;
                 }
 
-                CrmRegistrationRequest registration = CrmRegistrationRequest.Create(
-                    Request.Form["firstname"],
-                    Request.Form["lastname"],
-                    Request.Form["email"],
-                    Request.Form["phone"],
-                    Request.Form["company"],
-                    Request.Form["eventId"]);
+                CrmRegistrationRequest registration;
+                if (isJson)
+                {
+                    const int maxBytes = 16384;
+                    byte[] bytes = new byte[maxBytes + 1];
+                    int count = 0;
+                    int read;
+                    while (count < bytes.Length && (read = Request.InputStream.Read(bytes, count, bytes.Length - count)) > 0)
+                        count += read;
+                    if (count > maxBytes)
+                    {
+                        WriteJson(413, false, "İstek gövdesi çok büyük.", null, correlationId);
+                        return;
+                    }
+                    string json;
+                    try { json = new UTF8Encoding(false, true).GetString(bytes, 0, count); }
+                    catch (DecoderFallbackException) { throw new RequestValidationException("İstek UTF-8 olmalıdır."); }
+                    WebLeadRequest form = WebLeadRequest.FromAuthenticatedJson(json);
+                    form.ValidateEventOrigin("https://altium.net");
+                    // A missing version is omitted; no consent text version is invented.
+                    form.PrepareCrmRecord(WebLeadOptions.Load().ConsentVersion, DateTime.UtcNow);
+                    registration = form.Registration;
+                }
+                else
+                {
+                    registration = CrmRegistrationRequest.Create(
+                        Request.Form["firstname"], Request.Form["lastname"], Request.Form["email"],
+                        Request.Form["phone"], Request.Form["company"], Request.Form["eventId"]);
+                }
 
                 Guid crmId = CrmConnection.Execute(
                     options,
@@ -58,18 +79,22 @@ namespace RelatedEntegrasyonu.CrmGateway
 
                 WriteJson(200, true, "CRM kaydı oluşturuldu.", crmId.ToString(), correlationId);
             }
+            catch (WebLeadRejectedException)
+            {
+                WriteJson(403, false, "Gönderim kabul edilmedi.", null, correlationId);
+            }
             catch (RequestValidationException ex)
             {
                 WriteJson(400, false, ex.Message, null, correlationId);
             }
             catch (ConfigurationErrorsException ex)
             {
-                System.Diagnostics.Trace.TraceError("CRM configuration error. CorrelationId={0}; Error={1}", correlationId, ex);
+                System.Diagnostics.Trace.TraceError("CRM configuration error. CorrelationId={0}; ErrorType={1}", correlationId, ex.GetType().Name);
                 WriteJson(503, false, "CRM test servisi henüz kullanıma hazır değil.", null, correlationId);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Trace.TraceError("CRM operation failed. CorrelationId={0}; Error={1}", correlationId, ex);
+                System.Diagnostics.Trace.TraceError("CRM operation failed. CorrelationId={0}; ErrorType={1}", correlationId, ex.GetType().Name);
                 WriteJson(502, false, "CRM kaydı oluşturulurken bir hata oluştu.", null, correlationId);
             }
         }

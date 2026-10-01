@@ -60,6 +60,15 @@ internal static class WebLeadTests
             Reject<WebLeadRejectedException>(() => Parse(spam), "Honeypot rejected");
             var captcha = Payload(); captcha["captchaToken"] = "";
             Reject<WebLeadRejectedException>(() => Parse(captcha), "Missing CAPTCHA rejected");
+            var trusted = Payload(); trusted.Remove("captchaToken");
+            var trustedForm = WebLeadRequest.FromAuthenticatedJson(new JavaScriptSerializer().Serialize(trusted));
+            trustedForm.PrepareCrmRecord(null, received);
+            Check(trustedForm.Registration.Email == "ahmet@example.invalid", "Authenticated website payload accepted without replaying CAPTCHA");
+            Check(!trustedForm.Registration.Description.Contains("Metin sürümü"), "Missing consent version is omitted, not invented");
+            trusted["consent"] = false;
+            Reject<RequestValidationException>(() => WebLeadRequest.FromAuthenticatedJson(new JavaScriptSerializer().Serialize(trusted)), "Authenticated payload still requires consent");
+            trusted["consent"] = true; trusted["website"] = "spam";
+            Reject<WebLeadRejectedException>(() => WebLeadRequest.FromAuthenticatedJson(new JavaScriptSerializer().Serialize(trusted)), "Authenticated payload still rejects honeypot");
             var email = Payload(); email["email"] = "not-an-email";
             Reject<RequestValidationException>(() => Parse(email), "Invalid email rejected");
             var longText = Payload(); longText["message"] = new string('x', 1501);

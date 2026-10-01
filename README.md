@@ -81,3 +81,6 @@ PowerShell 7 ve Visual Studio MSBuild ile:
 ```
 
 Ayrıntılar: [ASPX yayın ve doğrulama notları](docs/ASPX_DEPLOYMENT.md).
+## Mevcut etkinlik formunu bağlama
+
+Çalışan `CreateCrmRegistration.aspx` girişine JSON desteği eklendi. Altium sitesinin sunucusu, mevcut `INBOUND_API_KEY` değerini `X-Integration-Key` başlığında göndererek form verilerini CRM'e aktarabilir. Site tarafında uygulanacak örnek ve kurulum adımları: [EVENT_SERVER_FORWARDING.md](docs/EVENT_SERVER_FORWARDING.md).

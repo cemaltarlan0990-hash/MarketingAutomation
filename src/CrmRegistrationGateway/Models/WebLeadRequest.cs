@@ -24,6 +24,18 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
 
         public static WebLeadRequest FromJson(string json)
         {
+            return Parse(json, true);
+        }
+
+        // Only the authenticated, server-to-server endpoint may use this entry point.
+        // The website has already verified its own CAPTCHA before forwarding.
+        public static WebLeadRequest FromAuthenticatedJson(string json)
+        {
+            return Parse(json, false);
+        }
+
+        private static WebLeadRequest Parse(string json, bool requireCaptcha)
+        {
             Dictionary<string, object> data;
             try
             {
@@ -57,7 +69,7 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
             if (marketing == true && !(emailConsent || smsConsent || phoneConsent))
                 throw new RequestValidationException("Pazarlama onayı için en az bir iletişim kanalı seçilmelidir.");
             string captcha = Text(data, "captchaToken", 2048, false);
-            if (string.IsNullOrWhiteSpace(captcha)) throw new WebLeadRejectedException();
+            if (requireCaptcha && string.IsNullOrWhiteSpace(captcha)) throw new WebLeadRejectedException();
             return new WebLeadRequest
             {
                 Registration = CrmRegistrationRequest.Create(firstName, lastName, email, phone, company, null),

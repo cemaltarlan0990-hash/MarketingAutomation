@@ -17,7 +17,8 @@ for ($attempt = 1; $attempt -le 18; $attempt++) {
         $endpoint = "$BaseUrl/CreateCrmRegistration.aspx"
         $checks = @(
             @{ Method = 'Get'; Expected = 405 },
-            @{ Method = 'Post'; Expected = 415; ContentType = 'application/json'; Body = '{}' },
+            @{ Method = 'Post'; Expected = 415; ContentType = 'text/plain'; Body = '{}' },
+            @{ Method = 'Post'; Expected = 401; ContentType = 'application/json'; Body = '{}' },
             @{ Method = 'Post'; Expected = 401; ContentType = 'application/x-www-form-urlencoded'; Body = 'firstname=Test' }
         )
         foreach ($check in $checks) {
