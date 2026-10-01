@@ -7,6 +7,15 @@ tutulur. Parola, token, client secret veya API anahtarı içermez ve içermemeli
 
 ## Güncel durum: 2026-10-02 — Mevcut anahtarla site sunucusundan aktarım
 
+### Son kullanıcı yönlendirmesi: doğrudan tarayıcıdan Azure'a gönderim
+
+- Kullanıcı doğrudan Azure adresinin seçilmesini ve gerekli değişikliklerin pushlanmasını istedi. Güncel seçilen akış form → WebLead.aspx → CRM; sunucu aktarımı artık alternatiftir.
+- examples/web-form/altium-event-form.js hedefi açıkça ALTTR Azure WebLead.aspx adresidir. Altium form şablonuna uygulanacak Turnstile + JS parçası examples/web-form/altium-event-form-integration.blade.php dosyasında hazırdır.
+- 503 servis ayarları ve 502 CRM hataları form üzerinde farklı mesajlarla ve güvenli correlationId ile gösterilir; otomatik tekrar yoktur. 20 JS testi geçti.
+- Canlı Azure kontrolü: Altium preflight OPTIONS 204 ve doğru Access-Control-Allow-Origin; geçersiz CAPTCHA ile kayıt açamayan tanılama POST'u 503 döndü. Giriş erişilebilir, ancak servis ayarlarının tamamlandığı henüz doğrulanmadı. Hangi ayarın eksik olduğu portal/günlük erişimi olmadan kesinleştirilmedi.
+- Kullanıcının paylaştığı gerçek form HTML'i hâlâ fetch(storeUrl) ile Altium'a POST yapıyor. Admin kaynağında Mustafa Taylan / mustafa12314@gmail.com kaydı var; TEST CRM'de aynı e-posta bulunmadı.
+- Bu depoyu Azure'a deploy etmek gerçek Altium şablonunu değiştirmez. Sitede eski submit listener kaldırılıp yeni dosya uygulanmalı; widget action web-lead olmalı ve Azure gerçek CAPTCHA secret/metin sürümü/CRM ayarları tamamlanmalıdır.
+
 - Kullanıcı mevcut çalışan CRM bağlantısı ve INBOUND_API_KEY ile gerçek form verilerinin aktarılmasını istedi.
 - CreateCrmRegistration.aspx artık X-Integration-Key doğrulamasından sonra JSON form payload'ını kabul eder; eski form-urlencoded girişi korunur.
 - Authenticated JSON yolunda CAPTCHA yeniden doğrulanmaz; bunu mevcut site sunucusu çağrıdan önce yapmalıdır. WebLead.aspx'in halka açık doğrulaması değiştirilmedi.

@@ -48,8 +48,17 @@ for ($attempt = 1; $attempt -le 18; $attempt++) {
             throw 'The deployed WebLead endpoint must reject GET with JSON.'
         }
         $eventScript = Invoke-WebRequest "$BaseUrl/integrations/altium-event-form.js" -TimeoutSec 15
-        if ($eventScript.Content -notmatch 'reg-form-app' -or $eventScript.Content -notmatch 'WebLead\.aspx') {
+        if ($eventScript.Content -notmatch 'reg-form-app' -or
+            -not $eventScript.Content.Contains($BaseUrl + '/WebLead.aspx')) {
             throw 'The event form JavaScript was not included in the deployment.'
+        }
+        $preflight = Invoke-WebRequest "$BaseUrl/WebLead.aspx" -Method Options -SkipHttpErrorCheck -TimeoutSec 15 -Headers @{
+            Origin = 'https://altium.net'
+            'Access-Control-Request-Method' = 'POST'
+            'Access-Control-Request-Headers' = 'content-type'
+        }
+        if ($preflight.StatusCode -ne 204 -or $preflight.Headers['Access-Control-Allow-Origin'] -ne 'https://altium.net') {
+            throw 'The deployed WebLead endpoint must allow Altium browser submissions.'
         }
         if ($connectionTest.StatusCode -ne 401 -or ($connectionTest.Content | ConvertFrom-Json).success -ne $false) {
             throw 'The deployed connection-test endpoint must require an API key.'

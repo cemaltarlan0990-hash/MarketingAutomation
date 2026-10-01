@@ -77,6 +77,8 @@
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
       const result = await response.json();
+      const reference = typeof result.correlationId === 'string' && /^[a-f0-9]{32}$/i.test(result.correlationId)
+        ? ' Referans: ' + result.correlationId : '';
       if (response.ok && result.success === true) {
         form.reset();
         say('Etkinlik talebiniz CRM’e kaydedildi, teşekkürler.');
@@ -85,9 +87,13 @@
       } else if (response.status === 400 || response.status === 413) {
         say('Form bilgilerini ve alan uzunluklarını kontrol edin.');
       } else if (response.status === 403) {
-        say('Güvenlik doğrulaması başarısız. Doğrulamayı yenileyin.');
+        say('Güvenlik doğrulaması başarısız. Doğrulamayı yenileyin.' + reference);
+      } else if (response.status === 503) {
+        say('İstek Azure’a ulaştı, ancak servis ayarları henüz tamamlanmamış. Site yöneticisine bildirin.' + reference);
+      } else if (response.status === 502) {
+        say('İstek Azure’a ulaştı, ancak CRM kayıt işlemi tamamlanamadı. Site yöneticisine bildirin.' + reference);
       } else {
-        say('Kayıt işlemi tamamlanamadı. Lütfen daha sonra tekrar deneyin.');
+        say('Kayıt işlemi tamamlanamadı. Lütfen daha sonra tekrar deneyin.' + reference);
       }
     } catch {
       // A lost response may follow a CRM creation. Never retry automatically.

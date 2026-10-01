@@ -45,7 +45,7 @@ function setup(overrides = {}) {
 test('actual Altium form fields map to Azure JSON including event and independent consents', async () => {
   const x = setup(); await x.submit();
   const r = x.requests[0]; const b = JSON.parse(r.options.body);
-  assert.match(r.url, /azurewebsites\.net\/WebLead\.aspx$/);
+  assert.equal(r.url, 'https://alttr-marketingautomation-f9dmgackdme4gueu.westeurope-01.azurewebsites.net/WebLead.aspx');
   assert.equal(b.firstName, 'Ahmet'); assert.equal(b.lastName, 'Yılmaz');
   assert.equal(b.jobTitle, 'Mühendis'); assert.equal(b.city, 'İSTANBUL');
   assert.equal(b.phone, '+905551112233');
@@ -104,3 +104,17 @@ test('standard checkbox sync code must not imply a channel without selection', a
   const x = setup(); x.checks.channel_email.checked = false; await x.submit();
   assert.equal(x.requests.length, 0); assert.match(x.messages.textContent, /kanalı/);
 });
+
+for (const [status, expectedMessage] of [[503, /servis ayarları/], [502, /CRM kayıt işlemi/]]) {
+  test('Azure HTTP ' + status + ' retains fields and reports the failure with a reference', async () => {
+    const correlationId = '0123456789abcdef0123456789abcdef';
+    const x = setup({ fetch: async () => ({ ok: false, status, json: async () => ({ success: false, correlationId }) }) });
+    await x.submit();
+    assert.equal(x.requests.length, 1);
+    assert.equal(x.resets, 0);
+    assert.equal(x.button.disabled, false);
+    assert.match(x.messages.textContent, /İstek Azure’a ulaştı/);
+    assert.match(x.messages.textContent, expectedMessage);
+    assert.ok(x.messages.textContent.includes(correlationId));
+  });
+}

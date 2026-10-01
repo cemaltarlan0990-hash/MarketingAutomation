@@ -1,9 +1,10 @@
 # Altium etkinlik formu: GitHub → Azure → CRM
 
-Mevcut anahtarlı servisi kullanarak site sunucusundan aktarım yapmak için önce
-[EVENT_SERVER_FORWARDING.md](EVENT_SERVER_FORWARDING.md) adımlarını uygulayın.
-Aşağıdaki bölüm, ayrı bir seçenek olan tarayıcıdan doğrudan `WebLead.aspx`
-çağrısını anlatır; bu seçenek Azure tarafında CAPTCHA doğrulaması gerektirir.
+Seçilen akış: **Altium etkinlik formu → Azure WebLead.aspx → CRM Lead**.
+Hedef adres:
+`https://alttr-marketingautomation-f9dmgackdme4gueu.westeurope-01.azurewebsites.net/WebLead.aspx`.
+Bu belge tarayıcıdan doğrudan gönderimi anlatır. Altium sunucusundan anahtarlı
+aktarım alternatifinin belgesi [EVENT_SERVER_FORWARDING.md](EVENT_SERVER_FORWARDING.md).
 
 Bu değişiklik aynı .NET Framework 4.8 ASPX uygulamasını kullanır.
 Gerçek `reg-form-app` formunun JSON'u `WebLead.aspx` sayfasına gönderilir;
@@ -12,7 +13,7 @@ mevcut CRM bağlantısı TEST Dataverse ortamında Lead oluşturur.
 ## GitHub'a gönderme
 
 Proje kökünde PowerShell açın. Geçerli dal `main`, GitHub remote adı `github`;
-`origin` ise Azure Repos'tur. Bu çalışma commit veya push yapmadı.
+`origin` ise Azure Repos'tur.
 
 ```powershell
 git status --short
@@ -47,6 +48,11 @@ CAPTCHA secret veya metin sürümü eksikse endpoint CRM'e yazmaz ve 503 döner.
 
 GitHub push **ASPX uygulamasını ve JS dosyasını Azure'a yayımlar**.
 Altium web sitesinin mevcut form şablonunu kendiliğinden değiştirmez.
+
+Uygulanacak Blade parçası `examples/web-form/altium-event-form-integration.blade.php`
+dosyasında hazırdır. Paylaşılan gerçek form kaynağında eski listener
+`document.getElementById('reg-form-app').addEventListener('submit', ...)`
+ile başlıyor; içinde `fetch(storeUrl, ...)` bulunuyor.
 
 1. `reg-form-app` için mevcut submit listener'ını kaldırıp
 `examples/web-form/altium-event-form.js` ile değiştirin. Eski ve yeni listener
@@ -102,10 +108,15 @@ bir form gönderin. Network'te OPTIONS 204, POST 201, JSON success:true kontrol
 edin. TEST CRM'de Lead'in konu, mesaj, unvan, şehir, telefon, onaylar ve form URL'sini
 kontrol edin. Test sırasında yeni CRM kaydı oluşur.
 
+Network'te POST hedefi hâlâ `altium.net/tr/etkinlik-kayit/...` ise yeni kod
+siteye uygulanmamış demektir. POST Azure'a gidiyor ve 503 dönüyorsa servis ayarları,
+403 dönüyorsa origin/CAPTCHA, 502 dönüyorsa CRM işlemi incelenmelidir. Yeni JS
+503 ve 502 cevaplarında bu ayrımı ve sunucunun takip referansını gösterir.
+
 JS aynı anda çift gönderimi engeller; kalıcı idempotency yoktur. Yanıt kaybolursa
 kayıt oluşmuş olabilir; otomatik tekrar gönderilmez. Rate limit süreç belleğindedir;
 çoklu instance için ortak gateway/WAF limiti gerekir.
 
-1 Ekim 2026: Release derleme, 21 yerel HTTP kontrolü, 51 model/CRM mapping
-kontrolü ve 18 JS testi başarılı. Gerçek CRM gönderimi, GitHub push, Azure deploy
-ve Altium sitesinde değişiklik bu çalışma sırasında yapılmadı.
+Önceki sürüm e5248b5 ile Azure'a başarıyla yayımlandı. Paylaşılan gerçek Altium
+sayfa kaynağında gönderim hâlâ siteye yapılıyor; bu sürümün site şablonuna
+uygulanması gereklidir. Yeni doğrudan gönderimden gerçek CRM kaydı henüz doğrulanmadı.
