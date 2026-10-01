@@ -15,11 +15,17 @@ $previousApiKey = $env:CRM_INBOUND_API_KEY
 $eventApiKey = [Guid]::NewGuid().ToString('N') + [Guid]::NewGuid().ToString('N')
 $previousEventApiKey = $env:CRM_EVENT_API_KEY
 $previousWriteSetting = $env:CRM_WRITES_ENABLED
+$previousOrigins = $env:WEB_LEAD_ALLOWED_ORIGINS
+$previousCaptcha = $env:TURNSTILE_SECRET_KEY
+$previousConsentVersion = $env:WEB_LEAD_CONSENT_VERSION
 $iisProcess = $null
 try {
     $env:CRM_INBOUND_API_KEY = $apiKey
     $env:CRM_EVENT_API_KEY = $eventApiKey
     $env:CRM_WRITES_ENABLED = 'false'
+    $env:WEB_LEAD_ALLOWED_ORIGINS = 'http://localhost:3000'
+    $env:TURNSTILE_SECRET_KEY = '<NOT_CONFIGURED>'
+    $env:WEB_LEAD_CONSENT_VERSION = 'contract-test'
     $iisProcess = Start-Process -FilePath $iisPath -ArgumentList @("/path:`"$PackageRoot`"", "/port:$Port", '/systray:false') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $logDirectory 'iis.stdout.log') -RedirectStandardError (Join-Path $logDirectory 'iis.stderr.log')
     $baseUrl = "http://localhost:$Port"
     $ready = $false
@@ -38,4 +44,7 @@ try {
     $env:CRM_INBOUND_API_KEY = $previousApiKey
     $env:CRM_EVENT_API_KEY = $previousEventApiKey
     $env:CRM_WRITES_ENABLED = $previousWriteSetting
+    $env:WEB_LEAD_ALLOWED_ORIGINS = $previousOrigins
+    $env:TURNSTILE_SECRET_KEY = $previousCaptcha
+    $env:WEB_LEAD_CONSENT_VERSION = $previousConsentVersion
 }

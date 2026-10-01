@@ -12,6 +12,14 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
         public string Phone { get; private set; }
         public string Company { get; private set; }
         public string EventId { get; private set; }
+        public string Subject { get; private set; }
+        public string Description { get; private set; }
+
+        internal void SetWebFormDetails(string subject, string description)
+        {
+            Subject = Normalize(subject, 200, "subject");
+            Description = Normalize(description, 2000, "description");
+        }
 
         public static CrmRegistrationRequest Create(
             string firstName,

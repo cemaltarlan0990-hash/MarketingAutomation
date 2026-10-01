@@ -16,6 +16,26 @@ oluşturan **ASP.NET Web Forms / .NET Framework 4.8** servisidir.
 
 ## Servisi çağırma
 
+### Tarayıcıdan web formu gönderimi
+
+`POST /WebLead.aspx`, verilen web formunun `firstName`, `lastName`, `email`,
+`phone`, `company`, `message`, `consent`, `captchaToken`, `website` alanlarını
+JSON olarak alır. Mevcut CRM bağlantısıyla Lead oluşturur; mesaj, konu ve form
+onayının sunucu kaydını da açıklamaya ekler. Tarayıcıya gizli anahtar verilmez.
+
+Gerekli yeni Azure ayarları: `WEB_LEAD_ALLOWED_ORIGINS`, `TURNSTILE_SECRET_KEY`,
+`WEB_LEAD_CONSENT_VERSION`. Eksik güvenlik ayarlarında yeni giriş kapalıdır.
+HTML/JS örnekleri `examples/web-form` altındadır.
+[Form bağlantısı ve test rehberi](docs/WEB_FORM_INTEGRATION.md).
+
+Gerçek Altium etkinlik formu için `examples/web-form/altium-event-form.js`
+hazırdır. Paket bunu `/integrations/altium-event-form.js` olarak Azure'a da taşır.
+Etkinlik başlığı, URL, unvan, şehir ve ayrı pazarlama/kanal beyanları açıklamaya
+eklenir. Origin varsayılanı `https://altium.net`tir.
+[GitHub push, Azure ayarları ve siteye uygulama](docs/ALTIUM_EVENT_FORM_GO_LIVE.md).
+
+### Mevcut sunucudan sunucuya gönderim
+
 `POST /CreateCrmRegistration.aspx`
 
 - `Content-Type: application/x-www-form-urlencoded`

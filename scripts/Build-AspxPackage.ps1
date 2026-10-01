@@ -46,9 +46,12 @@ $null = New-Item -ItemType Directory -Path $packageBin -Force
 
 # Package compiled runtime files only. Do not copy source, local settings,
 # generated DLL config files, publish credentials, or participant data.
-foreach ($page in @('CreateCrmRegistration.aspx', 'TestCrmConnection.aspx', 'EtkinlikKayit.aspx')) {
+foreach ($page in @('CreateCrmRegistration.aspx', 'TestCrmConnection.aspx', 'EtkinlikKayit.aspx', 'WebLead.aspx')) {
     Copy-Item -LiteralPath (Join-Path $webRoot $page) -Destination $packageRoot
 }
+$integrationRoot = Join-Path $packageRoot 'integrations'
+$null = New-Item -ItemType Directory -Path $integrationRoot -Force
+Copy-Item -LiteralPath (Join-Path $projectRoot 'examples\web-form\altium-event-form.js') -Destination $integrationRoot
 Get-ChildItem -LiteralPath (Join-Path $webRoot 'bin') -File -Filter '*.dll' |
     Copy-Item -Destination $packageBin
 
@@ -64,6 +67,7 @@ $deploymentDefaults = @{
     'Crm.EmailAttribute' = 'emailaddress1'
     'Crm.PhoneAttribute' = 'mobilephone'
     'Crm.CompanyAttribute' = 'companyname'
+    'WebLead.AllowedOrigins' = 'https://altium.net'
 }
 foreach ($setting in $webConfig.configuration.appSettings.add) {
     $setting.value = if ($deploymentDefaults.ContainsKey($setting.key)) {

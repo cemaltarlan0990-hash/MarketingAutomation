@@ -29,11 +29,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Node for frontend checks
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Build ASPX package
         run: ./scripts/Build-AspxPackage.ps1 -OutputDirectory "${{ env.ASPX_PACKAGE_DIRECTORY }}" -EnableCrmWrites
 
       - name: Test ASPX package in IIS Express
         run: ./scripts/Test-AspxPackage.ps1 -PackageRoot "${{ env.ASPX_PACKAGE_DIRECTORY }}/wwwroot"
+
+      - name: Test web form validation and CRM mapping
+        run: ./scripts/Test-WebLeadModel.ps1 -PackageRoot "${{ env.ASPX_PACKAGE_DIRECTORY }}/wwwroot"
+
+      - name: Test frontend submission
+        run: node --test tests/web-form.test.cjs tests/altium-event-form.test.cjs
 
       - name: Stamp deployment version
         run: |

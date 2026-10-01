@@ -42,6 +42,14 @@ for ($attempt = 1; $attempt -le 18; $attempt++) {
             if ($body.success -ne $false -or -not $body.correlationId) { throw 'The EtkinlikKayit JSON response was not valid.' }
         }
         $connectionTest = Invoke-WebRequest "$BaseUrl/TestCrmConnection.aspx" -Method Post -SkipHttpErrorCheck -TimeoutSec 15
+        $webForm = Invoke-WebRequest "$BaseUrl/WebLead.aspx" -Method Get -SkipHttpErrorCheck -TimeoutSec 15
+        if ($webForm.StatusCode -ne 405 -or ($webForm.Content | ConvertFrom-Json).success -ne $false) {
+            throw 'The deployed WebLead endpoint must reject GET with JSON.'
+        }
+        $eventScript = Invoke-WebRequest "$BaseUrl/integrations/altium-event-form.js" -TimeoutSec 15
+        if ($eventScript.Content -notmatch 'reg-form-app' -or $eventScript.Content -notmatch 'WebLead\.aspx') {
+            throw 'The event form JavaScript was not included in the deployment.'
+        }
         if ($connectionTest.StatusCode -ne 401 -or ($connectionTest.Content | ConvertFrom-Json).success -ne $false) {
             throw 'The deployed connection-test endpoint must require an API key.'
         }

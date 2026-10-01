@@ -21,7 +21,7 @@ PowerShell 7 ve Visual Studio MSBuild ile:
 ```
 
 Çıktı `.artifacts/aspx-deploy/<tarih>/CrmRegistrationGateway.Aspx.zip` dosyasıdır.
-Paketin kökünde iki ASPX dosyası, Web.config ve bin dizini vardır. Kaynak kod,
+Paketin kökünde dört ASPX dosyası, Web.config ve bin dizini vardır. Kaynak kod,
 katılımcı verisi ve kimlik bilgileri pakete alınmaz. Paket üretimi tek başına
 Azure'a yayın yapmaz. Yerel Web.config değiştirilmez. Yerel kimlik bilgileri
 Git tarafından yok sayılan `Web.local.config` dosyasında tutulabilir; bu dosya
@@ -72,3 +72,15 @@ X-Integration-Key başlığı bekler. firstname, lastname, email zorunludur;
 phone ve company isteğe bağlıdır. eventId alınır fakat mevcut sürümde CRM'e
 yazılmaz. Unvan, şehir, kalıcı tekrar gönderim takibi ve form entegrasyonu
 bu yayın paketine eklenmiş özellikler değildir.
+
+## Web formu JSON girişi
+
+Yeni `/WebLead.aspx` aynı uygulamada doğrudan tarayıcı JSON'unu alır. Pakete
+dahildir. Genel HTML/contactForm örnekleri paket dışında kalır; gerçek etkinlik
+JS'si `/integrations/altium-event-form.js` olarak pakete eklenir.
+`WEB_LEAD_ALLOWED_ORIGINS`, `TURNSTILE_SECRET_KEY`, `WEB_LEAD_CONSENT_VERSION`
+Azure ayarlarında tanımlanmalıdır. IIS OPTIONS handler'ı Web.config'de bu sayfa
+için ayrıca eşlenmiştir. Ayrıntılar: [Web formu entegrasyonu](WEB_FORM_INTEGRATION.md).
+
+Gerçek `reg-form-app` alan eşlemesi, GitHub push ve siteye uygulama için
+[Altium etkinlik formunu devreye alma](ALTIUM_EVENT_FORM_GO_LIVE.md).

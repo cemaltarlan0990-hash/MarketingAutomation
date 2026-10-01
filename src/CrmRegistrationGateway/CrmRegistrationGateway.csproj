@@ -41,6 +41,7 @@
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.ServiceModel" />
     <Reference Include="System.Web" />
     <Reference Include="System.Web.Extensions" />
@@ -62,12 +63,20 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="CreateCrmRegistration.aspx" />
+    <Content Include="WebLead.aspx" />
     <Content Include="EtkinlikKayit.aspx" />
     <Content Include="TestCrmConnection.aspx" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\CrmOptions.cs" />
+    <Compile Include="Configuration\WebLeadOptions.cs" />
+    <Compile Include="WebLead.aspx.cs">
+      <DependentUpon>WebLead.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Models\WebLeadRequest.cs" />
+    <Compile Include="Services\TurnstileVerifier.cs" />
+    <Compile Include="Infrastructure\WebLeadRateLimiter.cs" />
     <Compile Include="CreateCrmRegistration.aspx.cs">
       <DependentUpon>CreateCrmRegistration.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>

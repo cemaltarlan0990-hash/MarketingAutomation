@@ -1,9 +1,54 @@
 # Proje Bağlamı: ALTTR Marketing Automation
 
-Son güncelleme: 2026-09-28
+Son güncelleme: 2026-10-01
 
 Bu dosya, proje üzerinde sonraki çalışmalarda mevcut durumu hızlıca hatırlamak için
 tutulur. Parola, token, client secret veya API anahtarı içermez ve içermemelidir.
+
+## Güncel durum: 2026-10-01 — Gerçek etkinlik formu için hazır değişiklikler
+
+- Kullanıcı kodların bu klasörde hazırlanmasını istedi; GitHub push işlemini
+  kendisi yapacak. Commit/push/deploy yapılmadı.
+- Gerçek sayfa https://altium.net/tr/etkinlik-kayit/test-kayittir-silmeyin,
+  form id reg-form-app, first_name/last_name, title, city, phone_country/phone,
+  kvkk_consent, eio_consent ve ayrı kanal checkbox'ları kullanıyor. CAPTCHA Turnstile.
+- Yeni examples/web-form/altium-event-form.js, mevcut submit listener'ın yerine
+  konacak. Kayıt onayı, alan/checkbox/telefon eşlemesi, yalnız Azure'a JSON gönderimi,
+  buton kilidi ve güvenli sonuç gösterimi var. Eski site POST endpoint'i çağrılmaz;
+  onun mail/veritabanı işlevleri bu direct-submit sürümünde çalıştırılmaz.
+- WebLeadRequest artık unvan/şehir/etkinlik başlığı/URL ve bağımsız pazarlama/kanal
+  beyanlarını da kabul eder. Unvan/şehir/izinler açıklamada; başlık subject'te.
+  Pazarlama tercihlerine ait CRM sütunları veya etkinlik lookup'ı değiştirilmez.
+- Origin https://altium.net kaynak ve paket varsayılanında tanımlı. Secret/metin
+  sürümü Azure'da ayrıca tanımlanmalı; widget'a data-action=web-lead eklenmeli.
+- JS dosyası Azure paketine integrations/altium-event-form.js olarak eklenir.
+  GitHub workflow model+iki JS test dosyasını çalıştırır, yayın sonrası JS'yi kontrol eder.
+- Release derleme, 21 HTTP, 51 model/mapping ve 18 JS kontrolü geçti; CRM'e
+  gerçek gönderim yapılmadı. Rehber docs/ALTIUM_EVENT_FORM_GO_LIVE.md.
+- GitHub deploy Altium sitesinin form şablonunu otomatik değiştirmez; siteye
+  yeni JS'nin uygulanması ve eski submit listener'ın kaldırılması gerekir.
+
+## Güncel durum: 2026-09-30 — Web formu JSON girişi
+
+- Kullanıcı yeni Node.js/Functions yerine mevcut ASPX servisinin web formundan
+  veri almasını istedi. Yeni `POST /WebLead.aspx` aynı .NET Framework 4.8
+  uygulamasına eklendi; mevcut `CrmConnection` / `CrmRegistrationWriter` kullanılır.
+- JSON sözleşmesi: firstName, lastName, email, phone, company, message, consent
+  (boolean true), captchaToken, website (honeypot boş). Subject ve description
+  eşlemesi eklendi; onay metni sürümü ve sunucu zamanı açıklamaya kaydedilir.
+  Form onayı pazarlama iznine dönüştürülmez.
+- Origin allowlist, HTTPS, strict JSON doğrulaması, 16 KiB limit, Turnstile
+  server-side success/hostname/action doğrulaması ve süreç içi rate limit var.
+  Çoklu instance için ortak limit yok; gateway/WAF kısıtı rehberde açıklandı.
+- Yeni ayarlar: WEB_LEAD_ALLOWED_ORIGINS, TURNSTILE_SECRET_KEY,
+  WEB_LEAD_CONSENT_VERSION. Gerçek değerler yok; endpoint fail-closed çalışır.
+- `examples/web-form` HTML/JS, `docs/WEB_FORM_INTEGRATION.md` bağlantı rehberidir.
+- Release derleme, 21 yerel HTTP kontrolü, 41 model/CRM mapping kontrolü ve
+  6 frontend testi geçti. Testlerde CRM'e istek yapılmadı.
+- Kaynak/paket/workflow güncellendi. Bu değişiklik henüz commit/push/yayın
+  edilmedi; gerçek CAPTCHA ve yeni form → Azure → CRM testi yapılmadı.
+- Mevcut anahtarlı CreateCrmRegistration.aspx ve Power Automate EtkinlikKayit.aspx
+  istek sözleşmeleri korunur. TEST CRM kısıtları korunur.
 
 ## Güncel durum: 2026-09-28
 

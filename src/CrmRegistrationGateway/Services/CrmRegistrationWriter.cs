@@ -25,6 +25,8 @@ namespace RelatedEntegrasyonu.CrmGateway.Services
             record[options.EmailAttribute] = request.Email;
             SetWhenMapped(record, options.PhoneAttribute, request.Phone);
             SetWhenMapped(record, options.CompanyAttribute, request.Company);
+            SetWhenMapped(record, "subject", request.Subject);
+            SetWhenMapped(record, "description", request.Description);
 
             return service.Create(record);
         }

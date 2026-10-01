@@ -104,4 +104,39 @@ if ($EventApiKey) {
         }
 }
 
+$webUri = $BaseUrl.TrimEnd('/') + '/WebLead.aspx'
+Invoke-Check -Name 'WebLead: GET reddediliyor' -ExpectedStatus 405 -Request @{ Uri = $webUri; Method = 'Get' }
+Invoke-Check -Name 'WebLead: İzin verilmeyen origin' -ExpectedStatus 403 -Request @{
+    Uri = $webUri; Method = 'Post'; ContentType = 'application/json'; Headers = @{ Origin = 'https://attacker.example' }; Body = '{}'
+}
+Invoke-Check -Name 'WebLead: Origin olmadan gönderim' -ExpectedStatus 403 -Request @{
+    Uri = $webUri; Method = 'Post'; ContentType = 'application/json'; Body = '{}'
+}
+$preflight = Invoke-WebRequest -Uri $webUri -Method Options -SkipHttpErrorCheck -Headers @{
+    Origin = 'http://localhost:3000'; 'Access-Control-Request-Method' = 'POST'; 'Access-Control-Request-Headers' = 'content-type'
+}
+if ($preflight.StatusCode -ne 204 -or $preflight.Headers['Access-Control-Allow-Origin'] -ne 'http://localhost:3000') {
+    throw ("WebLead preflight failed. Status={0}; Headers={1}; Body={2}" -f $preflight.StatusCode, ($preflight.Headers | ConvertTo-Json -Compress), $preflight.Content)
+}
+Write-Host '[OK] WebLead: OPTIONS preflight -> HTTP 204'
+Invoke-Check -Name 'WebLead: Büyük gövde reddediliyor' -ExpectedStatus 413 -Request @{
+    Uri = $webUri; Method = 'Post'; ContentType = 'application/json'; Headers = @{ Origin = 'http://localhost:3000' }; Body = ('x' * 17000)
+}
+Invoke-Check -Name 'WebLead: Yanlış Content-Type' -ExpectedStatus 415 -Request @{
+    Uri = $webUri; Method = 'Post'; ContentType = 'text/plain'; Headers = @{ Origin = 'http://localhost:3000' }; Body = '{}'
+}
+foreach ($case in @(
+    @{ Name = 'Bozuk JSON'; Status = 400; Body = '{"firstName":' },
+    @{ Name = 'String onay reddediliyor'; Status = 400; Body = '{"consent":"true"}' },
+    @{ Name = 'Honeypot reddediliyor'; Status = 403; Body = '{"consent":true,"website":"spam"}' },
+    @{ Name = 'CAPTCHA eksik'; Status = 403; Body = '{"consent":true,"firstName":"Test","lastName":"Katilimci","email":"test@example.invalid"}' },
+    @{ Name = 'Eksik güvenlik ayarı güvenli kapanıyor'; Status = 503; Body = '{"consent":true,"firstName":"Test","lastName":"Katilimci","email":"test@example.invalid","message":"Talep","captchaToken":"test-token","website":""}' }
+)) {
+    Invoke-Check -Name ('WebLead: ' + $case.Name) -ExpectedStatus $case.Status -Request @{
+        Uri = $webUri; Method = 'Post'; ContentType = 'application/json'; Headers = @{ Origin = 'http://localhost:3000' }; Body = $case.Body
+    }
+}
+Invoke-Check -Name 'WebLead: Gönderim limiti' -ExpectedStatus 429 -Request @{
+    Uri = $webUri; Method = 'Post'; ContentType = 'application/json'; Headers = @{ Origin = 'http://localhost:3000' }; Body = '{}'
+}
 Write-Host "Tüm endpoint kontrolleri başarılı. CRM'e istek gönderilmedi."
