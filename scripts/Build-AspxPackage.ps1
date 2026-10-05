@@ -72,6 +72,13 @@ $deploymentDefaults = @{
     'Crm.CityEntityLogicalName' = 'twbs_sehir'
     'Crm.CityNameAttribute' = 'twbs_sehiradi'
     'Crm.KvkkConsentAttribute' = 'twbs_kvkkonayi'
+    'Crm.IysPhoneAttribute' = 'telephone1'
+    'Crm.IysConsentEnabled' = 'true'
+    'Crm.LeadSourceAttribute' = 'leadsourcecode'
+    'Crm.DefaultLeadSource' = 'CO | Web Formu'
+    'Crm.CampaignLookupAttribute' = 'campaignid'
+    'Crm.CampaignEntityLogicalName' = 'campaign'
+    'Crm.CampaignNameAttribute' = 'name'
     'WebLead.AllowedOrigins' = 'https://altium.net'
 }
 foreach ($setting in $webConfig.configuration.appSettings.add) {

@@ -17,6 +17,7 @@ $sources = @(
     'src/CrmRegistrationGateway/Models/CrmRegistrationRequest.cs',
     'src/CrmRegistrationGateway/Models/WebLeadRequest.cs',
     'src/CrmRegistrationGateway/Services/CrmRegistrationWriter.cs',
+    'src/CrmRegistrationGateway/Services/IysConsentWriter.cs',
     'src/CrmRegistrationGateway/Services/TurnstileVerifier.cs'
 ) | ForEach-Object { Join-Path $projectRoot $_ }
 & $compiler /nologo /target:exe "/out:$testExe" "/reference:$sdk" /reference:System.Web.Extensions.dll /reference:System.Net.Http.dll /reference:System.Runtime.Serialization.dll /reference:System.ServiceModel.dll @sources

@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Linq;
 using System.Web.Script.Serialization;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Messages;
+using Microsoft.Xrm.Sdk.Metadata;
 using Microsoft.Xrm.Sdk.Query;
 using RelatedEntegrasyonu.CrmGateway.Configuration;
 using RelatedEntegrasyonu.CrmGateway.Infrastructure;
@@ -153,6 +156,65 @@ internal static class WebLeadTests
             var legacyProfile = new RecordingService();
             CrmRegistrationWriter.Write(legacyProfile, profileOptions, legacy);
             Check(!legacyProfile.Record.Contains("twbs_kvkkonayi") && legacyProfile.CityQueries == 0, "Legacy form post claims no KVKK consent and skips city lookup");
+            Check(!cities.Record.Contains("telephone1") && !cities.Record.Contains("leadsourcecode") && cities.LeadUpdates.Count == 0, "Source and İYS features stay off until configured");
+
+            Environment.SetEnvironmentVariable("CRM_IYS_PHONE_ATTRIBUTE", "telephone1");
+            Environment.SetEnvironmentVariable("CRM_IYS_CONSENT_ENABLED", "true");
+            Environment.SetEnvironmentVariable("CRM_LEAD_SOURCE_ATTRIBUTE", "leadsourcecode");
+            Environment.SetEnvironmentVariable("CRM_DEFAULT_LEAD_SOURCE", "CO | Web Formu");
+            Environment.SetEnvironmentVariable("CRM_CAMPAIGN_LOOKUP_ATTRIBUTE", "campaignid");
+            Environment.SetEnvironmentVariable("CRM_CAMPAIGN_ENTITY", "campaign");
+            Environment.SetEnvironmentVariable("CRM_CAMPAIGN_NAME_ATTRIBUTE", "name");
+            CrmOptions iysOptions = CrmOptions.Load();
+            Func<Dictionary<string, object>, WebLeadRequest> prepared = changes =>
+            {
+                var p = new Dictionary<string, object>(eventPayload);
+                foreach (var change in changes) p[change.Key] = change.Value;
+                var parsed = Parse(p); parsed.ValidateEventOrigin("https://altium.net"); parsed.PrepareCrmRecord("event-v1", received); return parsed;
+            };
+            var iysForm = prepared(new Dictionary<string, object> { { "smsConsent", true }, { "sourceCampaign", "Kalite'26" }, { "leadSource", "co |  fuar" } });
+            var crm = new RecordingService { CampaignMatches = 1 };
+            Guid created = CrmRegistrationWriter.Write(crm, iysOptions, iysForm.Registration);
+            Check(created == crm.Result && (string)crm.Record["telephone1"] == "0 555 111 22 33" && (string)crm.Record["mobilephone"] == "0 555 111 22 33", "Turkish mobile formatted into business and mobile phone");
+            var landline = new RecordingService();
+            CrmRegistrationWriter.Write(landline, iysOptions, prepared(new Dictionary<string, object> { { "phone", "+902122223344" } }).Registration);
+            Check((string)landline.Record["telephone1"] == "0 212 222 33 44" && !landline.Record.Contains("mobilephone"), "Turkish landline only in business phone");
+            var abroad = new RecordingService();
+            CrmRegistrationWriter.Write(abroad, iysOptions, prepared(new Dictionary<string, object> { { "phone", "+4915112345678" } }).Registration);
+            Check((string)abroad.Record["telephone1"] == "+4915112345678" && !abroad.Record.Contains("mobilephone"), "Foreign number unchanged and only in business phone");
+            Check(((OptionSetValue)crm.Record["leadsourcecode"]).Value == 12, "Lead source label resolved to its real choice value");
+            Check(((EntityReference)crm.Record["campaignid"]).Id == crm.CampaignId, "Unambiguous campaign linked by name");
+            Check(crm.LeadUpdates.Count == 1 && (bool)crm.LeadUpdates[0]["altium_emailonayi"] && (bool)crm.LeadUpdates[0]["altium_mesajonayi"], "Selected channels sent to the existing İYS plugins");
+            Check(!crm.LeadUpdates[0].Contains("altium_aramaonayi"), "Unselected channel is not touched or rejected");
+            Check(crm.Activities.Count == 2 && crm.Activities.All(a => ((OptionSetValue)a["altium_onaykaynagi"]).Value == 1), "Form consent activities marked as Webform");
+            Check(crm.Activities.All(a => ((OptionSetValue)a["statecode"]).Value == 1 && ((OptionSetValue)a["statuscode"]).Value == 2), "Activities returned to their completed state");
+            IysConsentWriter.Apply(crm, "lead", crm.Result, iysForm.Registration, "+905551112233");
+            Check(crm.LeadUpdates.Count == 1 && crm.Activities.Count == 2, "Retry does not duplicate İYS activities");
+
+            var defaults = new RecordingService { CampaignMatches = 2 };
+            CrmRegistrationWriter.Write(defaults, iysOptions, prepared(new Dictionary<string, object> { { "sourceCampaign", "BSS SOFTWARE DOWNLOAD" } }).Registration);
+            Check(((OptionSetValue)defaults.Record["leadsourcecode"]).Value == 250160001, "Missing lead source falls back to the configured default");
+            Check(!defaults.Record.Contains("campaignid"), "Ambiguous campaign name is not linked");
+            var unknown = new RecordingService();
+            CrmRegistrationWriter.Write(unknown, iysOptions, prepared(new Dictionary<string, object> { { "leadSource", "Uydurma Kaynak" } }).Registration);
+            Check(!unknown.Record.Contains("leadsourcecode"), "Unknown lead source label is not guessed");
+
+            var foreign = new RecordingService();
+            CrmRegistrationWriter.Write(foreign, iysOptions, prepared(new Dictionary<string, object> { { "phone", "+4915112345678" }, { "smsConsent", true } }).Registration);
+            Check(foreign.LeadUpdates.Count == 1 && foreign.LeadUpdates[0].Contains("altium_emailonayi") && !foreign.LeadUpdates[0].Contains("altium_mesajonayi"), "Non-Turkish number skips phone İYS channels only");
+            var noMarketing = new RecordingService();
+            CrmRegistrationWriter.Write(noMarketing, iysOptions, prepared(new Dictionary<string, object> { { "marketingConsent", false }, { "emailConsent", false } }).Registration);
+            Check(noMarketing.LeadUpdates.Count == 0 && noMarketing.Activities.Count == 0, "No commercial consent means no İYS change");
+            var failing = new RecordingService { FailLeadUpdates = true };
+            Check(CrmRegistrationWriter.Write(failing, iysOptions, iysForm.Registration) == failing.Result, "İYS failure does not lose the created Lead");
+            var legacyIys = new RecordingService();
+            CrmRegistrationWriter.Write(legacyIys, iysOptions, legacy);
+            Check(!legacyIys.Record.Contains("leadsourcecode") && legacyIys.LeadUpdates.Count == 0, "Legacy form post gets no source default or İYS change");
+            Func<string, string> tr = CrmRegistrationWriter.NormalizeTurkishPhone;
+            Check(tr("+905551112233") == "05551112233" && tr("0555 111 22 33") == "05551112233" && tr("5551112233") == "05551112233"
+                && tr("00905551112233") == "05551112233" && tr("905551112233") == "05551112233", "Turkish number variants normalized");
+            Check(tr("+4915112345678") == null && tr("+12125551234") == null && tr("") == null, "Foreign numbers are not treated as Turkish");
+            Check(CrmRegistrationWriter.FormatTurkishPhone("05551112233") == "0 555 111 22 33", "Turkish number formatted as 0 555 555 55 55");
 
             Check(TurnstileVerifier.IsValidResponse("{\"success\":true,\"hostname\":\"www.example.com\",\"action\":\"web-lead\"}", "www.example.com", "web-lead"), "CAPTCHA result accepted only for matching site and action");
             Check(!TurnstileVerifier.IsValidResponse("{\"success\":true,\"hostname\":\"attacker.example\",\"action\":\"web-lead\"}", "www.example.com", "web-lead"), "CAPTCHA hostname mismatch rejected");
@@ -183,6 +245,8 @@ internal static class WebLeadTests
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
     }
 
+    // In-memory CRM. Lead consent flags simulate the ManuelMkvyOnay plugins verified in TEST CRM:
+    // each flag creates a closed İYS activity with source "Manuel"; closed activities reject edits.
     private sealed class RecordingService : IOrganizationService
     {
         public Entity Record;
@@ -191,20 +255,74 @@ internal static class WebLeadTests
         public Guid? CityId;
         public int CityQueries;
         public string LastCityQuery;
+        public int CampaignMatches;
+        public readonly Guid CampaignId = Guid.NewGuid();
+        public bool FailLeadUpdates;
+        public readonly List<Entity> LeadUpdates = new List<Entity>();
+        public readonly List<Entity> Activities = new List<Entity>();
         public Guid Create(Entity entity) { Record = entity; Creates++; return Result; }
         public Entity Retrieve(string entityName, Guid id, ColumnSet columns) { throw new NotSupportedException(); }
-        public void Update(Entity entity) { throw new NotSupportedException(); }
+        public void Update(Entity entity)
+        {
+            if (entity.LogicalName == "lead")
+            {
+                if (FailLeadUpdates) throw new InvalidOperationException("plugin failure");
+                LeadUpdates.Add(entity);
+                foreach (var flag in new[] { Tuple.Create("altium_emailonayi", 1), Tuple.Create("altium_aramaonayi", 2), Tuple.Create("altium_mesajonayi", 3) })
+                    if (entity.Contains(flag.Item1) && (bool)entity[flag.Item1])
+                    {
+                        var activity = new Entity("altium_iysaktivitesi", Guid.NewGuid());
+                        activity["altium_iystipii"] = new OptionSetValue(flag.Item2);
+                        activity["altium_onaykaynagi"] = new OptionSetValue(2);
+                        activity["statecode"] = new OptionSetValue(1);
+                        activity["statuscode"] = new OptionSetValue(2);
+                        Activities.Add(activity);
+                    }
+                return;
+            }
+            var target = Activities.First(a => a.Id == entity.Id);
+            bool closed = ((OptionSetValue)target["statecode"]).Value != 0;
+            if (closed && !entity.Contains("statecode")) throw new InvalidOperationException("Cannot update Closed or Cancelled Activity");
+            foreach (var attribute in entity.Attributes) target[attribute.Key] = attribute.Value;
+        }
         public void Delete(string entityName, Guid id) { throw new NotSupportedException(); }
-        public OrganizationResponse Execute(OrganizationRequest request) { throw new NotSupportedException(); }
+        public OrganizationResponse Execute(OrganizationRequest request)
+        {
+            // Mirrors TEST CRM: stale English labels name other options and are listed first.
+            var metadata = new PicklistAttributeMetadata { OptionSet = new OptionSetMetadata() };
+            var automation = new Label(new LocalizedLabel("CO | Web Formu", 1033), new[] { new LocalizedLabel("CO | Web Formu", 1033), new LocalizedLabel("CM | Otomasyon", 1055) });
+            metadata.OptionSet.Options.Add(new OptionMetadata(automation, 15));
+            metadata.OptionSet.Options.Add(new OptionMetadata(new Label("CO | Web Formu", 1055), 250160001));
+            metadata.OptionSet.Options.Add(new OptionMetadata(new Label("CO | Fuar", 1055), 12));
+            var response = new RetrieveAttributeResponse();
+            response.Results["AttributeMetadata"] = metadata;
+            return response;
+        }
         public void Associate(string entityName, Guid id, Relationship relationship, EntityReferenceCollection entities) { throw new NotSupportedException(); }
         public void Disassociate(string entityName, Guid id, Relationship relationship, EntityReferenceCollection entities) { throw new NotSupportedException(); }
         public EntityCollection RetrieveMultiple(QueryBase query)
         {
             var expression = (QueryExpression)query;
+            var result = new EntityCollection();
+            if (expression.EntityName == "campaign")
+            {
+                for (int i = 0; i < CampaignMatches; i++) result.Entities.Add(new Entity("campaign", i == 0 ? CampaignId : Guid.NewGuid()));
+                return result;
+            }
+            if (expression.EntityName == "altium_iysaktivitesi")
+            {
+                IEnumerable<Entity> items = Activities;
+                foreach (ConditionExpression c in expression.Criteria.Conditions)
+                {
+                    if (c.AttributeName == "altium_onaykaynagi") items = items.Where(a => ((OptionSetValue)a["altium_onaykaynagi"]).Value == (int)c.Values[0]);
+                    if (c.AttributeName == "altium_iystipii") items = items.Where(a => c.Values.Contains(((OptionSetValue)a["altium_iystipii"]).Value));
+                }
+                foreach (var item in items.ToList()) result.Entities.Add(item);
+                return result;
+            }
             var condition = expression.Criteria.Conditions[0];
             CityQueries++;
             LastCityQuery = expression.EntityName + ":" + condition.AttributeName + "=" + condition.Values[0];
-            var result = new EntityCollection();
             if (CityId.HasValue) result.Entities.Add(new Entity(expression.EntityName, CityId.Value));
             return result;
         }

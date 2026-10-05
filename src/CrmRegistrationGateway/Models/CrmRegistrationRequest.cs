@@ -18,6 +18,12 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
         public string City { get; private set; }
         // Null for legacy form posts, which carry no consent declaration.
         public bool? KvkkConsent { get; private set; }
+        public string SourceCampaign { get; private set; }
+        public string LeadSource { get; private set; }
+        // Channel-level commercial message consents; false means "not given", never "rejected".
+        public bool EmailConsent { get; private set; }
+        public bool SmsConsent { get; private set; }
+        public bool CallConsent { get; private set; }
 
         internal void SetWebFormDetails(string subject, string description)
         {
@@ -30,6 +36,19 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
             JobTitle = Normalize(jobTitle, 100, "jobTitle");
             City = Normalize(city, 100, "city");
             KvkkConsent = kvkkConsent;
+        }
+
+        internal void SetSourceDetails(string sourceCampaign, string leadSource)
+        {
+            SourceCampaign = Normalize(sourceCampaign, 200, "sourceCampaign");
+            LeadSource = Normalize(leadSource, 200, "leadSource");
+        }
+
+        internal void SetChannelConsents(bool email, bool sms, bool call)
+        {
+            EmailConsent = email;
+            SmsConsent = sms;
+            CallConsent = call;
         }
 
         public static CrmRegistrationRequest Create(

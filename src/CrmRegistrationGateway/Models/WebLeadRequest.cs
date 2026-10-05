@@ -17,6 +17,8 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
         public string City { get; private set; }
         public string EventTitle { get; private set; }
         public string EventUrl { get; private set; }
+        public string SourceCampaign { get; private set; }
+        public string LeadSource { get; private set; }
         public bool? MarketingConsent { get; private set; }
         public bool EmailConsent { get; private set; }
         public bool SmsConsent { get; private set; }
@@ -79,6 +81,8 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
                 City = Text(data, "city", 100, false),
                 EventTitle = eventTitle,
                 EventUrl = eventUrl,
+                SourceCampaign = Text(data, "sourceCampaign", 200, false),
+                LeadSource = Text(data, "leadSource", 200, false),
                 MarketingConsent = marketing,
                 EmailConsent = emailConsent,
                 SmsConsent = smsConsent,
@@ -109,6 +113,10 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
                 description.ToString());
             // Parsing already rejected requests without consent:true.
             Registration.SetProfileDetails(JobTitle, City, true);
+            Registration.SetSourceDetails(SourceCampaign, LeadSource);
+            // Channels only count when marketing consent was explicitly given (parsing enforces this).
+            bool marketing = MarketingConsent == true;
+            Registration.SetChannelConsents(marketing && EmailConsent, marketing && SmsConsent, marketing && PhoneConsent);
         }
 
         public void ValidateEventOrigin(string origin)

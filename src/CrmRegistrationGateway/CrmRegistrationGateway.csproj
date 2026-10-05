@@ -92,6 +92,7 @@
     <Compile Include="Services\AltiumService.cs" />
     <Compile Include="Services\CrmConnection.cs" />
     <Compile Include="Services\CrmRegistrationWriter.cs" />
+    <Compile Include="Services\IysConsentWriter.cs" />
     <Compile Include="Services\EtkinlikKaydiWriter.cs" />
     <Compile Include="TestCrmConnection.aspx.cs">
       <DependentUpon>TestCrmConnection.aspx</DependentUpon>
