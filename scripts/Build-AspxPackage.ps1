@@ -67,6 +67,11 @@ $deploymentDefaults = @{
     'Crm.EmailAttribute' = 'emailaddress1'
     'Crm.PhoneAttribute' = 'mobilephone'
     'Crm.CompanyAttribute' = 'companyname'
+    'Crm.JobTitleAttribute' = 'twbs_isunvani'
+    'Crm.CityLookupAttribute' = 'twbs_sehir'
+    'Crm.CityEntityLogicalName' = 'twbs_sehir'
+    'Crm.CityNameAttribute' = 'twbs_sehiradi'
+    'Crm.KvkkConsentAttribute' = 'twbs_kvkkonayi'
     'WebLead.AllowedOrigins' = 'https://altium.net'
 }
 foreach ($setting in $webConfig.configuration.appSettings.add) {

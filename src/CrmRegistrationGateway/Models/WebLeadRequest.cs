@@ -107,6 +107,8 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
             AddLine(description, "Alınma zamanı (UTC)", receivedAtUtc.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture));
             Registration.SetWebFormDetails(EventTitle.Length == 0 ? "Web sitesi form talebi" : "Etkinlik Kaydı: " + EventTitle,
                 description.ToString());
+            // Parsing already rejected requests without consent:true.
+            Registration.SetProfileDetails(JobTitle, City, true);
         }
 
         public void ValidateEventOrigin(string origin)

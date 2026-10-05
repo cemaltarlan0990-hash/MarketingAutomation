@@ -34,6 +34,9 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
         public string CityEntity { get; private set; }
         public string CityNameAttribute { get; private set; }
 
+        // İsteğe bağlı: web formundaki KVKK onayının yazılacağı Evet/Hayır alanı.
+        public string KvkkConsentAttribute { get; private set; }
+
         public bool HasCityLookup
         {
             get
@@ -71,7 +74,8 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
                 JobTitleAttribute = Read(new[] { "CRM_JOBTITLE_ATTRIBUTE" }, "Crm.JobTitleAttribute"),
                 CityLookupAttribute = Read(new[] { "CRM_CITY_LOOKUP_ATTRIBUTE" }, "Crm.CityLookupAttribute"),
                 CityEntity = Read(new[] { "CRM_CITY_ENTITY" }, "Crm.CityEntityLogicalName"),
-                CityNameAttribute = Read(new[] { "CRM_CITY_NAME_ATTRIBUTE" }, "Crm.CityNameAttribute")
+                CityNameAttribute = Read(new[] { "CRM_CITY_NAME_ATTRIBUTE" }, "Crm.CityNameAttribute"),
+                KvkkConsentAttribute = Read(new[] { "CRM_KVKK_ATTRIBUTE" }, "Crm.KvkkConsentAttribute")
             };
         }
 

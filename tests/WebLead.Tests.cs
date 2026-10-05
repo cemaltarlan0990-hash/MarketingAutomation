@@ -132,6 +132,28 @@ internal static class WebLeadTests
             var longEventMessage = new Dictionary<string, object>(eventPayload); longEventMessage["message"] = new string('x', 1001);
             Reject<RequestValidationException>(() => Parse(longEventMessage), "Event message limit reserves audit space");
 
+            Check(!fake.Record.Contains("twbs_isunvani") && !fake.Record.Contains("twbs_sehir") && !fake.Record.Contains("twbs_kvkkonayi"), "Unmapped profile fields are not written");
+            Environment.SetEnvironmentVariable("CRM_JOBTITLE_ATTRIBUTE", "twbs_isunvani");
+            Environment.SetEnvironmentVariable("CRM_CITY_LOOKUP_ATTRIBUTE", "twbs_sehir");
+            Environment.SetEnvironmentVariable("CRM_CITY_ENTITY", "twbs_sehir");
+            Environment.SetEnvironmentVariable("CRM_CITY_NAME_ATTRIBUTE", "twbs_sehiradi");
+            Environment.SetEnvironmentVariable("CRM_KVKK_ATTRIBUTE", "twbs_kvkkonayi");
+            CrmOptions profileOptions = CrmOptions.Load();
+            var cities = new RecordingService { CityId = Guid.NewGuid() };
+            CrmRegistrationWriter.Write(cities, profileOptions, eventData.Registration);
+            Check((string)cities.Record["twbs_isunvani"] == "Mühendis", "Job title written to its CRM column");
+            var city = (EntityReference)cities.Record["twbs_sehir"];
+            Check(city.LogicalName == "twbs_sehir" && city.Id == cities.CityId, "City linked to the CRM city record");
+            Check(cities.LastCityQuery == "twbs_sehir:twbs_sehiradi=İSTANBUL", "City looked up by its exact form value");
+            Check((bool)cities.Record["twbs_kvkkonayi"], "KVKK consent written to its CRM column");
+            Check(!cities.Record.Contains("twbs_elektronikiletionayi") && !cities.Record.Contains("altium_iysepostadurumu"), "Commercial message and IYS fields untouched");
+            var unknownCity = new RecordingService();
+            CrmRegistrationWriter.Write(unknownCity, profileOptions, eventData.Registration);
+            Check(unknownCity.Creates == 1 && !unknownCity.Record.Contains("twbs_sehir") && ((string)unknownCity.Record["description"]).Contains("İSTANBUL"), "Unknown city keeps the registration and the description");
+            var legacyProfile = new RecordingService();
+            CrmRegistrationWriter.Write(legacyProfile, profileOptions, legacy);
+            Check(!legacyProfile.Record.Contains("twbs_kvkkonayi") && legacyProfile.CityQueries == 0, "Legacy form post claims no KVKK consent and skips city lookup");
+
             Check(TurnstileVerifier.IsValidResponse("{\"success\":true,\"hostname\":\"www.example.com\",\"action\":\"web-lead\"}", "www.example.com", "web-lead"), "CAPTCHA result accepted only for matching site and action");
             Check(!TurnstileVerifier.IsValidResponse("{\"success\":true,\"hostname\":\"attacker.example\",\"action\":\"web-lead\"}", "www.example.com", "web-lead"), "CAPTCHA hostname mismatch rejected");
             Check(!TurnstileVerifier.IsValidResponse("{\"success\":true,\"hostname\":\"www.example.com\",\"action\":\"login\"}", "www.example.com", "web-lead"), "CAPTCHA action mismatch rejected");
@@ -166,6 +188,9 @@ internal static class WebLeadTests
         public Entity Record;
         public int Creates;
         public readonly Guid Result = Guid.NewGuid();
+        public Guid? CityId;
+        public int CityQueries;
+        public string LastCityQuery;
         public Guid Create(Entity entity) { Record = entity; Creates++; return Result; }
         public Entity Retrieve(string entityName, Guid id, ColumnSet columns) { throw new NotSupportedException(); }
         public void Update(Entity entity) { throw new NotSupportedException(); }
@@ -173,6 +198,15 @@ internal static class WebLeadTests
         public OrganizationResponse Execute(OrganizationRequest request) { throw new NotSupportedException(); }
         public void Associate(string entityName, Guid id, Relationship relationship, EntityReferenceCollection entities) { throw new NotSupportedException(); }
         public void Disassociate(string entityName, Guid id, Relationship relationship, EntityReferenceCollection entities) { throw new NotSupportedException(); }
-        public EntityCollection RetrieveMultiple(QueryBase query) { throw new NotSupportedException(); }
+        public EntityCollection RetrieveMultiple(QueryBase query)
+        {
+            var expression = (QueryExpression)query;
+            var condition = expression.Criteria.Conditions[0];
+            CityQueries++;
+            LastCityQuery = expression.EntityName + ":" + condition.AttributeName + "=" + condition.Values[0];
+            var result = new EntityCollection();
+            if (CityId.HasValue) result.Entities.Add(new Entity(expression.EntityName, CityId.Value));
+            return result;
+        }
     }
 }

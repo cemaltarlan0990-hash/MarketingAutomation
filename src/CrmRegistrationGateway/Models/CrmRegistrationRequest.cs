@@ -14,11 +14,22 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
         public string EventId { get; private set; }
         public string Subject { get; private set; }
         public string Description { get; private set; }
+        public string JobTitle { get; private set; }
+        public string City { get; private set; }
+        // Null for legacy form posts, which carry no consent declaration.
+        public bool? KvkkConsent { get; private set; }
 
         internal void SetWebFormDetails(string subject, string description)
         {
             Subject = Normalize(subject, 200, "subject");
             Description = Normalize(description, 2000, "description");
+        }
+
+        internal void SetProfileDetails(string jobTitle, string city, bool kvkkConsent)
+        {
+            JobTitle = Normalize(jobTitle, 100, "jobTitle");
+            City = Normalize(city, 100, "city");
+            KvkkConsent = kvkkConsent;
         }
 
         public static CrmRegistrationRequest Create(
