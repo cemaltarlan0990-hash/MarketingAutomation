@@ -132,10 +132,13 @@ internal static class WebLeadTests
             var longEventMessage = new Dictionary<string, object>(eventPayload); longEventMessage["message"] = new string('x', 1001);
             Reject<RequestValidationException>(() => Parse(longEventMessage), "Event message limit reserves audit space");
 
-            Check(TurnstileVerifier.IsValidResponse("{\"success\":true,\"hostname\":\"www.example.com\",\"action\":\"web-lead\"}", "www.example.com"), "CAPTCHA result accepted only for matching site and action");
-            Check(!TurnstileVerifier.IsValidResponse("{\"success\":true,\"hostname\":\"attacker.example\",\"action\":\"web-lead\"}", "www.example.com"), "CAPTCHA hostname mismatch rejected");
-            Check(!TurnstileVerifier.IsValidResponse("{\"success\":true,\"hostname\":\"www.example.com\",\"action\":\"login\"}", "www.example.com"), "CAPTCHA action mismatch rejected");
-            Check(!TurnstileVerifier.IsValidResponse("{\"success\":false}", "www.example.com"), "Failed CAPTCHA rejected");
+            Check(TurnstileVerifier.IsValidResponse("{\"success\":true,\"hostname\":\"www.example.com\",\"action\":\"web-lead\"}", "www.example.com", "web-lead"), "CAPTCHA result accepted only for matching site and action");
+            Check(!TurnstileVerifier.IsValidResponse("{\"success\":true,\"hostname\":\"attacker.example\",\"action\":\"web-lead\"}", "www.example.com", "web-lead"), "CAPTCHA hostname mismatch rejected");
+            Check(!TurnstileVerifier.IsValidResponse("{\"success\":true,\"hostname\":\"www.example.com\",\"action\":\"login\"}", "www.example.com", "web-lead"), "CAPTCHA action mismatch rejected");
+            Check(!TurnstileVerifier.IsValidResponse("{\"success\":false}", "www.example.com", "web-lead"), "Failed CAPTCHA rejected");
+            Check(TurnstileVerifier.IsValidResponse("{\"success\":true,\"hostname\":\"www.example.com\",\"action\":\"\"}", "www.example.com", null), "Unconfigured action accepts widget without data-action");
+            Check(!TurnstileVerifier.IsValidResponse("{\"success\":true,\"hostname\":\"attacker.example\",\"action\":\"\"}", "www.example.com", null), "Unconfigured action still requires matching hostname");
+            Check(!TurnstileVerifier.IsValidResponse("{\"success\":false,\"hostname\":\"www.example.com\"}", "www.example.com", null), "Unconfigured action still requires CAPTCHA success");
             Environment.SetEnvironmentVariable("WEB_LEAD_ALLOWED_ORIGINS", "https://www.example.com,http://localhost:3000");
             var web = WebLeadOptions.Load();
             Check(web.Allows("https://www.example.com") && !web.Allows("https://www.example.com.attacker.example"), "Exact origin allowlist");

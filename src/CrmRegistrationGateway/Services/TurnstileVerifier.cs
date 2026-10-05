@@ -11,7 +11,7 @@ namespace RelatedEntegrasyonu.CrmGateway.Services
         private static readonly HttpClient Client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })
         { Timeout = TimeSpan.FromSeconds(10), MaxResponseContentBufferSize = 16384 };
 
-        public static async Task<bool> VerifyAsync(string secret, string token, string expectedHostname)
+        public static async Task<bool> VerifyAsync(string secret, string token, string expectedHostname, string expectedAction)
         {
             using (var body = new FormUrlEncodedContent(new Dictionary<string, string>
             { { "secret", secret }, { "response", token } }))
@@ -19,11 +19,12 @@ namespace RelatedEntegrasyonu.CrmGateway.Services
             {
                 if (!response.IsSuccessStatusCode) throw new HttpRequestException("CAPTCHA provider unavailable.");
                 string json = await response.Content.ReadAsStringAsync();
-                return IsValidResponse(json, expectedHostname);
+                return IsValidResponse(json, expectedHostname, expectedAction);
             }
         }
 
-        internal static bool IsValidResponse(string json, string expectedHostname)
+        // An empty expectedAction skips the widget action check; success and hostname are always required.
+        internal static bool IsValidResponse(string json, string expectedHostname, string expectedAction)
         {
             var data = new JavaScriptSerializer { MaxJsonLength = 16384, RecursionLimit = 8 }
                 .Deserialize<Dictionary<string, object>>(json);
@@ -31,7 +32,8 @@ namespace RelatedEntegrasyonu.CrmGateway.Services
             return data != null && data.TryGetValue("success", out success) && success is bool && (bool)success &&
                 data.TryGetValue("hostname", out hostname) && hostname is string &&
                 string.Equals((string)hostname, expectedHostname, StringComparison.OrdinalIgnoreCase) &&
-                data.TryGetValue("action", out action) && action is string && (string)action == "web-lead";
+                (string.IsNullOrEmpty(expectedAction) ||
+                 data.TryGetValue("action", out action) && action is string && (string)action == expectedAction);
         }
     }
 }

@@ -8,6 +8,8 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
     {
         public string[] AllowedOrigins { get; private set; }
         public string CaptchaSecret { get; private set; }
+        // Optional Turnstile widget action (data-action). Empty means the action is not checked.
+        public string CaptchaAction { get; private set; }
         public string ConsentVersion { get; private set; }
 
         public static WebLeadOptions Load()
@@ -17,6 +19,7 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
             {
                 AllowedOrigins = (origins ?? "").Split(',').Select(x => x.Trim()).Where(x => x.Length > 0).ToArray(),
                 CaptchaSecret = Read("TURNSTILE_SECRET_KEY", "WebLead.TurnstileSecretKey"),
+                CaptchaAction = Read("WEB_LEAD_TURNSTILE_ACTION", "WebLead.TurnstileAction"),
                 ConsentVersion = Read("WEB_LEAD_CONSENT_VERSION", "WebLead.ConsentVersion")
             };
             foreach (string origin in result.AllowedOrigins)

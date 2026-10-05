@@ -88,7 +88,7 @@ namespace RelatedEntegrasyonu.CrmGateway
                 // Validate total CRM field lengths before consuming the single-use CAPTCHA.
                 data.PrepareCrmRecord(web.ConsentVersion, DateTime.UtcNow);
                 stage = "captcha";
-                if (!await TurnstileVerifier.VerifyAsync(web.CaptchaSecret, data.CaptchaToken, new Uri(origin).Host))
+                if (!await TurnstileVerifier.VerifyAsync(web.CaptchaSecret, data.CaptchaToken, new Uri(origin).Host, web.CaptchaAction))
                 { Reply(403, false, "Güvenlik doğrulaması başarısız. Doğrulamayı yenileyin.", correlationId); return; }
                 stage = "crm";
                 CrmConnection.Execute(crm, service => CrmRegistrationWriter.Write(service, crm, data.Registration));
