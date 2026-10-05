@@ -79,6 +79,7 @@ $deploymentDefaults = @{
     'Crm.CampaignLookupAttribute' = 'campaignid'
     'Crm.CampaignEntityLogicalName' = 'campaign'
     'Crm.CampaignNameAttribute' = 'name'
+    'Crm.WebFormCampaign' = 'Web'
     'WebLead.AllowedOrigins' = 'https://altium.net'
 }
 foreach ($setting in $webConfig.configuration.appSettings.add) {

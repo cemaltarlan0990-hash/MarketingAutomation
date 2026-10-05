@@ -48,6 +48,8 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
         public string CampaignLookupAttribute { get; private set; }
         public string CampaignEntity { get; private set; }
         public string CampaignNameAttribute { get; private set; }
+        // Doluysa web formu kayıtları formdan gelen ad yerine her zaman bu kampanyaya bağlanır.
+        public string WebFormCampaign { get; private set; }
 
         // Kanal onaylarının CRM'deki mevcut İYS eklentileri üzerinden işlenmesi.
         public bool IysConsentEnabled { get; private set; }
@@ -107,6 +109,7 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
                 CampaignLookupAttribute = Read(new[] { "CRM_CAMPAIGN_LOOKUP_ATTRIBUTE" }, "Crm.CampaignLookupAttribute"),
                 CampaignEntity = Read(new[] { "CRM_CAMPAIGN_ENTITY" }, "Crm.CampaignEntityLogicalName"),
                 CampaignNameAttribute = Read(new[] { "CRM_CAMPAIGN_NAME_ATTRIBUTE" }, "Crm.CampaignNameAttribute"),
+                WebFormCampaign = Read(new[] { "CRM_WEB_FORM_CAMPAIGN" }, "Crm.WebFormCampaign"),
                 IysConsentEnabled = ReadBoolean(new[] { "CRM_IYS_CONSENT_ENABLED" }, "Crm.IysConsentEnabled")
             };
         }

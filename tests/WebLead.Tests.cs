@@ -210,6 +210,15 @@ internal static class WebLeadTests
             var legacyIys = new RecordingService();
             CrmRegistrationWriter.Write(legacyIys, iysOptions, legacy);
             Check(!legacyIys.Record.Contains("leadsourcecode") && legacyIys.LeadUpdates.Count == 0, "Legacy form post gets no source default or İYS change");
+            Environment.SetEnvironmentVariable("CRM_WEB_FORM_CAMPAIGN", "Web");
+            CrmOptions webCampaign = CrmOptions.Load();
+            var fixedCampaign = new RecordingService { CampaignMatches = 1 };
+            CrmRegistrationWriter.Write(fixedCampaign, webCampaign, iysForm.Registration);
+            Check(fixedCampaign.LastCampaignName == "Web" && ((EntityReference)fixedCampaign.Record["campaignid"]).Id == fixedCampaign.CampaignId, "Web form Lead always linked to the Web campaign, not the form value");
+            var legacyCampaign = new RecordingService { CampaignMatches = 1 };
+            CrmRegistrationWriter.Write(legacyCampaign, webCampaign, legacy);
+            Check(!legacyCampaign.Record.Contains("campaignid") && legacyCampaign.LastCampaignName == null, "Legacy form post gets no campaign");
+
             Func<string, string> tr = CrmRegistrationWriter.NormalizeTurkishPhone;
             Check(tr("+905551112233") == "05551112233" && tr("0555 111 22 33") == "05551112233" && tr("5551112233") == "05551112233"
                 && tr("00905551112233") == "05551112233" && tr("905551112233") == "05551112233", "Turkish number variants normalized");
@@ -257,6 +266,7 @@ internal static class WebLeadTests
         public string LastCityQuery;
         public int CampaignMatches;
         public readonly Guid CampaignId = Guid.NewGuid();
+        public string LastCampaignName;
         public bool FailLeadUpdates;
         public readonly List<Entity> LeadUpdates = new List<Entity>();
         public readonly List<Entity> Activities = new List<Entity>();
@@ -306,6 +316,7 @@ internal static class WebLeadTests
             var result = new EntityCollection();
             if (expression.EntityName == "campaign")
             {
+                LastCampaignName = (string)expression.Criteria.Conditions.First(c => c.AttributeName == "name").Values[0];
                 for (int i = 0; i < CampaignMatches; i++) result.Entities.Add(new Entity("campaign", i == 0 ? CampaignId : Guid.NewGuid()));
                 return result;
             }

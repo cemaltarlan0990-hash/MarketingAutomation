@@ -68,7 +68,8 @@ namespace RelatedEntegrasyonu.CrmGateway.Services
                     string.IsNullOrWhiteSpace(request.LeadSource) ? options.DefaultLeadSource : request.LeadSource);
                 if (leadSource.HasValue)
                     record[options.LeadSourceAttribute] = new OptionSetValue(leadSource.Value);
-                Guid? campaignId = FindCampaign(service, options, request.SourceCampaign);
+                Guid? campaignId = FindCampaign(service, options,
+                    string.IsNullOrWhiteSpace(options.WebFormCampaign) ? request.SourceCampaign : options.WebFormCampaign);
                 if (campaignId.HasValue)
                     record[options.CampaignLookupAttribute] = new EntityReference(options.CampaignEntity, campaignId.Value);
             }
