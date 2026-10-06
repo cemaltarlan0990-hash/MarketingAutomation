@@ -73,7 +73,7 @@ $deploymentDefaults = @{
     'Crm.CityNameAttribute' = 'twbs_sehiradi'
     'Crm.KvkkConsentAttribute' = 'twbs_kvkkonayi'
     'Crm.IysPhoneAttribute' = 'telephone1'
-    'Crm.IysConsentEnabled' = 'true'
+    'Crm.IysConsentEnabled' = 'false'
     'Crm.LeadSourceAttribute' = 'leadsourcecode'
     'Crm.DefaultLeadSource' = 'CO | Web Formu'
     'Crm.CampaignLookupAttribute' = 'campaignid'
@@ -83,6 +83,9 @@ $deploymentDefaults = @{
     'Crm.EmailPermissionAttribute' = 'altium_epostaizni'
     'Crm.SmsPermissionAttribute' = 'altium_mesajizni'
     'Crm.CallPermissionAttribute' = 'altium_aramaizni'
+    'Crm.EventUrlAttribute' = 'altium_eventurl'
+    # TEST only: the local Laravel test site; remove when going live.
+    'Crm.EventUrlOrigins' = 'https://altium.net,http://127.0.0.1:8000'
     'WebLead.AllowedOrigins' = 'https://altium.net'
 }
 foreach ($setting in $webConfig.configuration.appSettings.add) {

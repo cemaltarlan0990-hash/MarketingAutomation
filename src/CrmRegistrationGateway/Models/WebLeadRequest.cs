@@ -114,17 +114,19 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
             // Parsing already rejected requests without consent:true.
             Registration.SetProfileDetails(JobTitle, City, true);
             Registration.SetSourceDetails(SourceCampaign, LeadSource);
+            Registration.SetEventUrl(EventUrl);
             // Channels only count when marketing consent was explicitly given (parsing enforces this).
             bool marketing = MarketingConsent == true;
             Registration.SetChannelConsents(marketing && EmailConsent, marketing && SmsConsent, marketing && PhoneConsent);
         }
 
-        public void ValidateEventOrigin(string origin)
+        public void ValidateEventOrigin(params string[] origins)
         {
             if (string.IsNullOrEmpty(EventUrl)) return;
             Uri url;
             if (!Uri.TryCreate(EventUrl, UriKind.Absolute, out url) ||
-                url.GetLeftPart(UriPartial.Authority) != origin || !string.IsNullOrEmpty(url.UserInfo) ||
+                !origins.Contains(url.GetLeftPart(UriPartial.Authority), StringComparer.OrdinalIgnoreCase) ||
+                !string.IsNullOrEmpty(url.UserInfo) ||
                 !string.IsNullOrEmpty(url.Query) || !string.IsNullOrEmpty(url.Fragment) ||
                 !url.AbsolutePath.StartsWith("/tr/etkinlik-kayit/", StringComparison.Ordinal))
                 throw new RequestValidationException("Etkinlik form adresi geçersiz.");

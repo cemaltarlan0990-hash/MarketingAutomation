@@ -51,6 +51,7 @@ namespace RelatedEntegrasyonu.CrmGateway.Services
             SetWhenMapped(record, options.CompanyAttribute, request.Company);
             SetWhenMapped(record, "subject", request.Subject);
             SetWhenMapped(record, "description", request.Description);
+            SetWhenMapped(record, options.EventUrlAttribute, request.EventUrl);
 
             // Profile fields are written only when their CRM columns are configured;
             // the description keeps the same values as an audit trail either way.

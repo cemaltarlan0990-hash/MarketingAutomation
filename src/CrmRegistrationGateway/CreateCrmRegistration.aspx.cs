@@ -61,7 +61,7 @@ namespace RelatedEntegrasyonu.CrmGateway
                     try { json = new UTF8Encoding(false, true).GetString(bytes, 0, count); }
                     catch (DecoderFallbackException) { throw new RequestValidationException("İstek UTF-8 olmalıdır."); }
                     WebLeadRequest form = WebLeadRequest.FromAuthenticatedJson(json);
-                    form.ValidateEventOrigin("https://altium.net");
+                    form.ValidateEventOrigin(options.EventUrlOrigins);
                     // A missing version is omitted; no consent text version is invented.
                     form.PrepareCrmRecord(WebLeadOptions.Load().ConsentVersion, DateTime.UtcNow);
                     registration = form.Registration;

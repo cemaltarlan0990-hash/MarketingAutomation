@@ -234,6 +234,28 @@ internal static class WebLeadTests
             CrmRegistrationWriter.Write(legacyPermission, permissionOptions, legacy);
             Check(!legacyPermission.Record.Contains("altium_epostaizni") && !legacyPermission.Record.Contains("altium_mesajizni") && !legacyPermission.Record.Contains("altium_aramaizni"), "Legacy form post leaves permission fields untouched");
 
+            Check(!permissions.Record.Contains("altium_eventurl"), "Event URL field stays off until configured");
+            Environment.SetEnvironmentVariable("CRM_EVENT_URL_ATTRIBUTE", "altium_eventurl");
+            Environment.SetEnvironmentVariable("CRM_EVENT_URL_ORIGINS", "https://altium.net, http://127.0.0.1:8000/");
+            CrmOptions eventUrlOptions = CrmOptions.Load();
+            var liveUrl = new RecordingService();
+            CrmRegistrationWriter.Write(liveUrl, eventUrlOptions, iysForm.Registration);
+            Check((string)liveUrl.Record["altium_eventurl"] == "https://altium.net/tr/etkinlik-kayit/test-kayittir-silmeyin", "Event URL written to its CRM column");
+            var localPayload = new Dictionary<string, object>(eventPayload); localPayload["eventUrl"] = "http://127.0.0.1:8000/tr/etkinlik-kayit/test-kayittir-silmeyin";
+            var localForm = Parse(localPayload); localForm.ValidateEventOrigin(eventUrlOptions.EventUrlOrigins); localForm.PrepareCrmRecord("event-v1", received);
+            var localUrl = new RecordingService();
+            CrmRegistrationWriter.Write(localUrl, eventUrlOptions, localForm.Registration);
+            Check((string)localUrl.Record["altium_eventurl"] == "http://127.0.0.1:8000/tr/etkinlik-kayit/test-kayittir-silmeyin", "Configured test origin accepted and written");
+            Environment.SetEnvironmentVariable("CRM_EVENT_URL_ORIGINS", null);
+            string[] defaultOrigins = CrmOptions.Load().EventUrlOrigins;
+            Check(defaultOrigins.Length == 1 && defaultOrigins[0] == "https://altium.net", "Only altium.net accepted by default");
+            Reject<RequestValidationException>(() => Parse(localPayload).ValidateEventOrigin(defaultOrigins), "Test origin rejected when not configured");
+            var otherSite = new Dictionary<string, object>(eventPayload); otherSite["eventUrl"] = "https://attacker.example/tr/etkinlik-kayit/x";
+            Reject<RequestValidationException>(() => Parse(otherSite).ValidateEventOrigin(eventUrlOptions.EventUrlOrigins), "Unlisted origin still rejected");
+            var legacyUrl = new RecordingService();
+            CrmRegistrationWriter.Write(legacyUrl, eventUrlOptions, legacy);
+            Check(!legacyUrl.Record.Contains("altium_eventurl"), "Legacy form post writes no event URL");
+
             Func<string, string> tr = CrmRegistrationWriter.NormalizeTurkishPhone;
             Check(tr("+905551112233") == "05551112233" && tr("0555 111 22 33") == "05551112233" && tr("5551112233") == "05551112233"
                 && tr("00905551112233") == "05551112233" && tr("905551112233") == "05551112233", "Turkish number variants normalized");

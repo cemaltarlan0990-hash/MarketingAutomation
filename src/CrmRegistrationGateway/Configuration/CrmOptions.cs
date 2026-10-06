@@ -59,6 +59,13 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
         // Kanal onaylarının CRM'deki mevcut İYS eklentileri üzerinden işlenmesi.
         public bool IysConsentEnabled { get; private set; }
 
+        // İsteğe bağlı: etkinlik formu adresinin yazılacağı Lead alanı.
+        public string EventUrlAttribute { get; private set; }
+
+        // Sunucudan gelen etkinlik adresi için kabul edilen kökler (virgülle ayrılmış).
+        // Tanımlı değilse yalnızca https://altium.net kabul edilir.
+        public string[] EventUrlOrigins { get; private set; }
+
         public bool HasCampaignLookup
         {
             get
@@ -118,8 +125,20 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
                 EmailPermissionAttribute = Read(new[] { "CRM_EMAIL_PERMISSION_ATTRIBUTE" }, "Crm.EmailPermissionAttribute"),
                 SmsPermissionAttribute = Read(new[] { "CRM_SMS_PERMISSION_ATTRIBUTE" }, "Crm.SmsPermissionAttribute"),
                 CallPermissionAttribute = Read(new[] { "CRM_CALL_PERMISSION_ATTRIBUTE" }, "Crm.CallPermissionAttribute"),
-                IysConsentEnabled = ReadBoolean(new[] { "CRM_IYS_CONSENT_ENABLED" }, "Crm.IysConsentEnabled")
+                IysConsentEnabled = ReadBoolean(new[] { "CRM_IYS_CONSENT_ENABLED" }, "Crm.IysConsentEnabled"),
+                EventUrlAttribute = Read(new[] { "CRM_EVENT_URL_ATTRIBUTE" }, "Crm.EventUrlAttribute"),
+                EventUrlOrigins = ReadList(new[] { "CRM_EVENT_URL_ORIGINS" }, "Crm.EventUrlOrigins", "https://altium.net")
             };
+        }
+
+        private static string[] ReadList(string[] environmentVariables, string appSetting, string fallback)
+        {
+            string value = Read(environmentVariables, appSetting);
+            string[] items = (string.IsNullOrWhiteSpace(value) ? fallback : value)
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            for (int index = 0; index < items.Length; index++)
+                items[index] = items[index].Trim().TrimEnd('/');
+            return items;
         }
 
         public void ValidateForConnection()

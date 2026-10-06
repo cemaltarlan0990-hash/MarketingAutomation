@@ -20,6 +20,7 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
         public bool? KvkkConsent { get; private set; }
         public string SourceCampaign { get; private set; }
         public string LeadSource { get; private set; }
+        public string EventUrl { get; private set; }
         // Channel-level commercial message consents; false means "not given", never "rejected".
         public bool EmailConsent { get; private set; }
         public bool SmsConsent { get; private set; }
@@ -42,6 +43,11 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
         {
             SourceCampaign = Normalize(sourceCampaign, 200, "sourceCampaign");
             LeadSource = Normalize(leadSource, 200, "leadSource");
+        }
+
+        internal void SetEventUrl(string eventUrl)
+        {
+            EventUrl = Normalize(eventUrl, 400, "eventUrl");
         }
 
         internal void SetChannelConsents(bool email, bool sms, bool call)
