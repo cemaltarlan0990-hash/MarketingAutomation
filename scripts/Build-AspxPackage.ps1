@@ -80,6 +80,9 @@ $deploymentDefaults = @{
     'Crm.CampaignEntityLogicalName' = 'campaign'
     'Crm.CampaignNameAttribute' = 'name'
     'Crm.WebFormCampaign' = 'Web'
+    'Crm.EmailPermissionAttribute' = 'altium_epostaizni'
+    'Crm.SmsPermissionAttribute' = 'altium_mesajizni'
+    'Crm.CallPermissionAttribute' = 'altium_aramaizni'
     'WebLead.AllowedOrigins' = 'https://altium.net'
 }
 foreach ($setting in $webConfig.configuration.appSettings.add) {

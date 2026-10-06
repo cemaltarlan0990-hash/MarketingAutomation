@@ -51,6 +51,11 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
         // Doluysa web formu kayıtları formdan gelen ad yerine her zaman bu kampanyaya bağlanır.
         public string WebFormCampaign { get; private set; }
 
+        // İsteğe bağlı: formdaki kanal kutucuklarının Evet/Hayır olarak yazılacağı Lead alanları.
+        public string EmailPermissionAttribute { get; private set; }
+        public string SmsPermissionAttribute { get; private set; }
+        public string CallPermissionAttribute { get; private set; }
+
         // Kanal onaylarının CRM'deki mevcut İYS eklentileri üzerinden işlenmesi.
         public bool IysConsentEnabled { get; private set; }
 
@@ -110,6 +115,9 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
                 CampaignEntity = Read(new[] { "CRM_CAMPAIGN_ENTITY" }, "Crm.CampaignEntityLogicalName"),
                 CampaignNameAttribute = Read(new[] { "CRM_CAMPAIGN_NAME_ATTRIBUTE" }, "Crm.CampaignNameAttribute"),
                 WebFormCampaign = Read(new[] { "CRM_WEB_FORM_CAMPAIGN" }, "Crm.WebFormCampaign"),
+                EmailPermissionAttribute = Read(new[] { "CRM_EMAIL_PERMISSION_ATTRIBUTE" }, "Crm.EmailPermissionAttribute"),
+                SmsPermissionAttribute = Read(new[] { "CRM_SMS_PERMISSION_ATTRIBUTE" }, "Crm.SmsPermissionAttribute"),
+                CallPermissionAttribute = Read(new[] { "CRM_CALL_PERMISSION_ATTRIBUTE" }, "Crm.CallPermissionAttribute"),
                 IysConsentEnabled = ReadBoolean(new[] { "CRM_IYS_CONSENT_ENABLED" }, "Crm.IysConsentEnabled")
             };
         }

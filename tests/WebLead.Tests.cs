@@ -219,6 +219,21 @@ internal static class WebLeadTests
             CrmRegistrationWriter.Write(legacyCampaign, webCampaign, legacy);
             Check(!legacyCampaign.Record.Contains("campaignid") && legacyCampaign.LastCampaignName == null, "Legacy form post gets no campaign");
 
+            Check(!fixedCampaign.Record.Contains("altium_epostaizni"), "Permission fields stay off until configured");
+            Environment.SetEnvironmentVariable("CRM_EMAIL_PERMISSION_ATTRIBUTE", "altium_epostaizni");
+            Environment.SetEnvironmentVariable("CRM_SMS_PERMISSION_ATTRIBUTE", "altium_mesajizni");
+            Environment.SetEnvironmentVariable("CRM_CALL_PERMISSION_ATTRIBUTE", "altium_aramaizni");
+            CrmOptions permissionOptions = CrmOptions.Load();
+            var permissions = new RecordingService();
+            CrmRegistrationWriter.Write(permissions, permissionOptions, iysForm.Registration);
+            Check((bool)permissions.Record["altium_epostaizni"] && (bool)permissions.Record["altium_mesajizni"] && !(bool)permissions.Record["altium_aramaizni"], "Checked channels Evet, unchecked channel Hayır");
+            var noPermission = new RecordingService();
+            CrmRegistrationWriter.Write(noPermission, permissionOptions, prepared(new Dictionary<string, object> { { "marketingConsent", false }, { "emailConsent", false } }).Registration);
+            Check(!(bool)noPermission.Record["altium_epostaizni"] && !(bool)noPermission.Record["altium_mesajizni"] && !(bool)noPermission.Record["altium_aramaizni"], "No marketing consent writes Hayır to all three");
+            var legacyPermission = new RecordingService();
+            CrmRegistrationWriter.Write(legacyPermission, permissionOptions, legacy);
+            Check(!legacyPermission.Record.Contains("altium_epostaizni") && !legacyPermission.Record.Contains("altium_mesajizni") && !legacyPermission.Record.Contains("altium_aramaizni"), "Legacy form post leaves permission fields untouched");
+
             Func<string, string> tr = CrmRegistrationWriter.NormalizeTurkishPhone;
             Check(tr("+905551112233") == "05551112233" && tr("0555 111 22 33") == "05551112233" && tr("5551112233") == "05551112233"
                 && tr("00905551112233") == "05551112233" && tr("905551112233") == "05551112233", "Turkish number variants normalized");

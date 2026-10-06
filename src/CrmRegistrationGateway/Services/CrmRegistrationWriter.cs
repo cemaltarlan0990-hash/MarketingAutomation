@@ -72,6 +72,11 @@ namespace RelatedEntegrasyonu.CrmGateway.Services
                     string.IsNullOrWhiteSpace(options.WebFormCampaign) ? request.SourceCampaign : options.WebFormCampaign);
                 if (campaignId.HasValue)
                     record[options.CampaignLookupAttribute] = new EntityReference(options.CampaignEntity, campaignId.Value);
+
+                // Business rule (2026-10-06): checked channel boxes are Evet, unchecked ones Hayır.
+                SetBooleanWhenMapped(record, options.EmailPermissionAttribute, request.EmailConsent);
+                SetBooleanWhenMapped(record, options.SmsPermissionAttribute, request.SmsConsent);
+                SetBooleanWhenMapped(record, options.CallPermissionAttribute, request.CallConsent);
             }
 
             Guid leadId = service.Create(record);
@@ -197,6 +202,12 @@ namespace RelatedEntegrasyonu.CrmGateway.Services
         private static string NormalizeLabel(string label)
         {
             return string.Join(" ", (label ?? "").Split((char[])null, StringSplitOptions.RemoveEmptyEntries));
+        }
+
+        private static void SetBooleanWhenMapped(Entity entity, string attribute, bool value)
+        {
+            if (!string.IsNullOrWhiteSpace(attribute))
+                entity[attribute] = value;
         }
 
         private static void SetWhenMapped(Entity entity, string attribute, string value)
