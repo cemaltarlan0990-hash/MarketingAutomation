@@ -40,6 +40,10 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
         // İsteğe bağlı: CRM'deki İYS eklentilerinin okuduğu telefon alanı (iş telefonu).
         public string IysPhoneAttribute { get; private set; }
 
+        // İsteğe bağlı: Türkiye sabit hatlarının (05 dışı) yazılacağı iş telefonu alanı.
+        // Tanımlıysa cep ve yabancı numaralar yalnız PhoneAttribute'a yazılır.
+        public string BusinessPhoneAttribute { get; private set; }
+
         // İsteğe bağlı: Müşteri Adayı Kaynağı seçenek alanı ve etiket gelmezse kullanılacak varsayılan.
         public string LeadSourceAttribute { get; private set; }
         public string DefaultLeadSource { get; private set; }
@@ -116,6 +120,7 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
                 CityNameAttribute = Read(new[] { "CRM_CITY_NAME_ATTRIBUTE" }, "Crm.CityNameAttribute"),
                 KvkkConsentAttribute = Read(new[] { "CRM_KVKK_ATTRIBUTE" }, "Crm.KvkkConsentAttribute"),
                 IysPhoneAttribute = Read(new[] { "CRM_IYS_PHONE_ATTRIBUTE" }, "Crm.IysPhoneAttribute"),
+                BusinessPhoneAttribute = Read(new[] { "CRM_BUSINESS_PHONE_ATTRIBUTE" }, "Crm.BusinessPhoneAttribute"),
                 LeadSourceAttribute = Read(new[] { "CRM_LEAD_SOURCE_ATTRIBUTE" }, "Crm.LeadSourceAttribute"),
                 DefaultLeadSource = Read(new[] { "CRM_DEFAULT_LEAD_SOURCE" }, "Crm.DefaultLeadSource"),
                 CampaignLookupAttribute = Read(new[] { "CRM_CAMPAIGN_LOOKUP_ATTRIBUTE" }, "Crm.CampaignLookupAttribute"),

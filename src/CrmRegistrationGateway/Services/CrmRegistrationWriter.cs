@@ -34,16 +34,27 @@ namespace RelatedEntegrasyonu.CrmGateway.Services
             record[options.FirstNameAttribute] = request.FirstName;
             record[options.LastNameAttribute] = request.LastName;
             record[options.EmailAttribute] = request.Email;
-            if (string.IsNullOrWhiteSpace(options.IysPhoneAttribute))
+            // Business rule (2026-10-05): Turkish numbers as "0 5xx xxx xx xx".
+            string turkish = NormalizeTurkishPhone(request.Phone);
+            string formatted = turkish == null ? request.Phone : FormatTurkishPhone(turkish);
+            if (!string.IsNullOrWhiteSpace(options.BusinessPhoneAttribute))
             {
-                SetWhenMapped(record, options.PhoneAttribute, request.Phone);
+                // Business rule (2026-10-06): Turkish mobiles (05…) to both phones, Turkish
+                // landlines (02/03/04…) only to the business phone, foreign numbers only to mobile.
+                bool mobile = turkish == null || turkish.StartsWith("05", StringComparison.Ordinal);
+                if (turkish != null)
+                    SetWhenMapped(record, options.BusinessPhoneAttribute, formatted);
+                if (mobile)
+                    SetWhenMapped(record, options.PhoneAttribute, formatted);
+            }
+            else if (string.IsNullOrWhiteSpace(options.IysPhoneAttribute))
+            {
+                SetWhenMapped(record, options.PhoneAttribute, formatted);
             }
             else
             {
-                // Business rule (2026-10-05): Turkish numbers as "0 5xx xxx xx xx"; every number goes
-                // to the business phone read by the İYS plugins, Turkish mobiles (05…) also to mobile.
-                string turkish = NormalizeTurkishPhone(request.Phone);
-                string formatted = turkish == null ? request.Phone : FormatTurkishPhone(turkish);
+                // Every number goes to the business phone read by the İYS plugins,
+                // Turkish mobiles (05…) also to mobile.
                 SetWhenMapped(record, options.IysPhoneAttribute, formatted);
                 if (turkish != null && turkish.StartsWith("05", StringComparison.Ordinal))
                     SetWhenMapped(record, options.PhoneAttribute, formatted);

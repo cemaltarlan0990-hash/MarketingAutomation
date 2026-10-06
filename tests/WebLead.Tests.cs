@@ -97,7 +97,8 @@ internal static class WebLeadTests
             Guid id = CrmRegistrationWriter.Write(fake, options, data.Registration);
             Check(id == fake.Result && fake.Creates == 1 && fake.Record.LogicalName == "lead", "Exactly one CRM Lead creation");
             Check((string)fake.Record["firstname"] == "Ahmet" && (string)fake.Record["emailaddress1"] == "ahmet@example.invalid", "Core Lead mapping");
-            Check((string)fake.Record["mobilephone"] == "+905551112233" && (string)fake.Record["companyname"] == "ABC", "Optional Lead mapping");
+            Check((string)fake.Record["mobilephone"] == "0 555 111 22 33" && (string)fake.Record["companyname"] == "ABC", "Optional Lead mapping");
+            Check(!fake.Record.Contains("telephone1"), "Business phone stays empty without an İYS phone mapping");
             Check((string)fake.Record["subject"] == "Web sitesi form talebi" && (string)fake.Record["description"] == data.Registration.Description, "Subject and description mapping");
             Check(!fake.Record.Contains("donotbulkemail") && !fake.Record.Contains("leadsourcecode"), "No inferred marketing permission or unverified choice value");
             var legacy = CrmRegistrationRequest.Create("Test", "Legacy", "test@example.invalid", null, null, null);
@@ -157,6 +158,17 @@ internal static class WebLeadTests
             CrmRegistrationWriter.Write(legacyProfile, profileOptions, legacy);
             Check(!legacyProfile.Record.Contains("twbs_kvkkonayi") && legacyProfile.CityQueries == 0, "Legacy form post claims no KVKK consent and skips city lookup");
             Check(!cities.Record.Contains("telephone1") && !cities.Record.Contains("leadsourcecode") && cities.LeadUpdates.Count == 0, "Source and İYS features stay off until configured");
+            Func<string, WebLeadRequest> withPhone = phone =>
+            {
+                var p = new Dictionary<string, object>(eventPayload); p["phone"] = phone;
+                var parsed = Parse(p); parsed.PrepareCrmRecord("event-v1", received); return parsed;
+            };
+            var mobileOnly = new RecordingService();
+            CrmRegistrationWriter.Write(mobileOnly, profileOptions, withPhone("+902122223344").Registration);
+            Check((string)mobileOnly.Record["mobilephone"] == "0 212 222 33 44" && !mobileOnly.Record.Contains("telephone1"), "Turkish landline to mobile phone only when business phone is off");
+            var abroadMobile = new RecordingService();
+            CrmRegistrationWriter.Write(abroadMobile, profileOptions, withPhone("+4915112345678").Registration);
+            Check((string)abroadMobile.Record["mobilephone"] == "+4915112345678" && !abroadMobile.Record.Contains("telephone1"), "Foreign number unchanged in mobile phone when business phone is off");
 
             Environment.SetEnvironmentVariable("CRM_IYS_PHONE_ATTRIBUTE", "telephone1");
             Environment.SetEnvironmentVariable("CRM_IYS_CONSENT_ENABLED", "true");
@@ -255,6 +267,25 @@ internal static class WebLeadTests
             var legacyUrl = new RecordingService();
             CrmRegistrationWriter.Write(legacyUrl, eventUrlOptions, legacy);
             Check(!legacyUrl.Record.Contains("altium_eventurl"), "Legacy form post writes no event URL");
+
+            Environment.SetEnvironmentVariable("CRM_BUSINESS_PHONE_ATTRIBUTE", "telephone1");
+            CrmOptions businessPhoneOptions = CrmOptions.Load();
+            Func<string, RecordingService> phoneRule = phone =>
+            {
+                var service = new RecordingService();
+                CrmRegistrationWriter.Write(service, businessPhoneOptions, withPhone(phone).Registration);
+                return service;
+            };
+            var cell = phoneRule("+905551112233");
+            Check((string)cell.Record["mobilephone"] == "0 555 111 22 33" && (string)cell.Record["telephone1"] == "0 555 111 22 33", "Turkish mobile in both business and mobile phone");
+            var istanbul = phoneRule("+902122223344");
+            Check((string)istanbul.Record["telephone1"] == "0 212 222 33 44" && !istanbul.Record.Contains("mobilephone"), "02 landline only in business phone");
+            var ankara = phoneRule("03122223344");
+            Check((string)ankara.Record["telephone1"] == "0 312 222 33 44" && !ankara.Record.Contains("mobilephone"), "03/04 landline only in business phone");
+            var foreignCell = phoneRule("+4915112345678");
+            Check((string)foreignCell.Record["mobilephone"] == "+4915112345678" && !foreignCell.Record.Contains("telephone1"), "Foreign number unchanged in mobile phone only");
+            var noPhone = phoneRule("");
+            Check(!noPhone.Record.Contains("telephone1") && !noPhone.Record.Contains("mobilephone"), "No phone writes neither phone field");
 
             Func<string, string> tr = CrmRegistrationWriter.NormalizeTurkishPhone;
             Check(tr("+905551112233") == "05551112233" && tr("0555 111 22 33") == "05551112233" && tr("5551112233") == "05551112233"
