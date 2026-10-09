@@ -34,6 +34,12 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
         public string CityEntity { get; private set; }
         public string CityNameAttribute { get; private set; }
 
+        // İsteğe bağlı: formdaki telefon ülkesinin bağlanacağı Ülke alanı (önce ad, sonra kodla).
+        public string CountryLookupAttribute { get; private set; }
+        public string CountryEntity { get; private set; }
+        public string CountryNameAttribute { get; private set; }
+        public string CountryCodeAttribute { get; private set; }
+
         // İsteğe bağlı: web formundaki KVKK onayının yazılacağı Evet/Hayır alanı.
         public string KvkkConsentAttribute { get; private set; }
 
@@ -80,6 +86,17 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
             }
         }
 
+        public bool HasCountryLookup
+        {
+            get
+            {
+                return !string.IsNullOrWhiteSpace(CountryLookupAttribute) &&
+                       !string.IsNullOrWhiteSpace(CountryEntity) &&
+                       !string.IsNullOrWhiteSpace(CountryNameAttribute) &&
+                       !string.IsNullOrWhiteSpace(CountryCodeAttribute);
+            }
+        }
+
         public bool HasCityLookup
         {
             get
@@ -118,6 +135,10 @@ namespace RelatedEntegrasyonu.CrmGateway.Configuration
                 CityLookupAttribute = Read(new[] { "CRM_CITY_LOOKUP_ATTRIBUTE" }, "Crm.CityLookupAttribute"),
                 CityEntity = Read(new[] { "CRM_CITY_ENTITY" }, "Crm.CityEntityLogicalName"),
                 CityNameAttribute = Read(new[] { "CRM_CITY_NAME_ATTRIBUTE" }, "Crm.CityNameAttribute"),
+                CountryLookupAttribute = Read(new[] { "CRM_COUNTRY_LOOKUP_ATTRIBUTE" }, "Crm.CountryLookupAttribute"),
+                CountryEntity = Read(new[] { "CRM_COUNTRY_ENTITY" }, "Crm.CountryEntityLogicalName"),
+                CountryNameAttribute = Read(new[] { "CRM_COUNTRY_NAME_ATTRIBUTE" }, "Crm.CountryNameAttribute"),
+                CountryCodeAttribute = Read(new[] { "CRM_COUNTRY_CODE_ATTRIBUTE" }, "Crm.CountryCodeAttribute"),
                 KvkkConsentAttribute = Read(new[] { "CRM_KVKK_ATTRIBUTE" }, "Crm.KvkkConsentAttribute"),
                 IysPhoneAttribute = Read(new[] { "CRM_IYS_PHONE_ATTRIBUTE" }, "Crm.IysPhoneAttribute"),
                 BusinessPhoneAttribute = Read(new[] { "CRM_BUSINESS_PHONE_ATTRIBUTE" }, "Crm.BusinessPhoneAttribute"),

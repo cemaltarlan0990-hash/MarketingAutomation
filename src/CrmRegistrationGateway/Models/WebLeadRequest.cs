@@ -19,6 +19,8 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
         public string EventUrl { get; private set; }
         public string SourceCampaign { get; private set; }
         public string LeadSource { get; private set; }
+        public string CountryCode { get; private set; }
+        public string CountryName { get; private set; }
         public bool? MarketingConsent { get; private set; }
         public bool EmailConsent { get; private set; }
         public bool SmsConsent { get; private set; }
@@ -70,6 +72,9 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
                 throw new RequestValidationException("İletişim kanalları için pazarlama onayı gereklidir.");
             if (marketing == true && !(emailConsent || smsConsent || phoneConsent))
                 throw new RequestValidationException("Pazarlama onayı için en az bir iletişim kanalı seçilmelidir.");
+            string countryCode = Text(data, "countryCode", 3, false);
+            if (countryCode.Length != 0 && !countryCode.All(c => (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')))
+                throw new RequestValidationException("countryCode alanı geçersiz.");
             string captcha = Text(data, "captchaToken", 2048, false);
             if (requireCaptcha && string.IsNullOrWhiteSpace(captcha)) throw new WebLeadRejectedException();
             return new WebLeadRequest
@@ -83,6 +88,8 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
                 EventUrl = eventUrl,
                 SourceCampaign = Text(data, "sourceCampaign", 200, false),
                 LeadSource = Text(data, "leadSource", 200, false),
+                CountryCode = countryCode,
+                CountryName = Text(data, "countryName", 100, false),
                 MarketingConsent = marketing,
                 EmailConsent = emailConsent,
                 SmsConsent = smsConsent,
@@ -98,6 +105,7 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
             description.AppendLine().AppendLine();
             AddLine(description, "Unvan", JobTitle);
             AddLine(description, "Şehir", City);
+            AddLine(description, "Ülke", CountryName.Length != 0 ? CountryName : CountryCode);
             AddLine(description, "Etkinlik formu", EventUrl);
             if (MarketingConsent.HasValue)
             {
@@ -109,12 +117,14 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
             AddLine(description, "Form onayı", "true");
             AddLine(description, "Metin sürümü", consentVersion);
             AddLine(description, "Alınma zamanı (UTC)", receivedAtUtc.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture));
-            Registration.SetWebFormDetails(EventTitle.Length == 0 ? "Web sitesi form talebi" : "Etkinlik Kaydı: " + EventTitle,
+            // Business rule (2026-10-09): the Lead subject is the event name exactly as on the page.
+            Registration.SetWebFormDetails(EventTitle.Length == 0 ? "Web sitesi form talebi" : EventTitle,
                 description.ToString());
             // Parsing already rejected requests without consent:true.
             Registration.SetProfileDetails(JobTitle, City, true);
             Registration.SetSourceDetails(SourceCampaign, LeadSource);
             Registration.SetEventUrl(EventUrl);
+            Registration.SetCountry(CountryCode, CountryName);
             // Channels only count when marketing consent was explicitly given (parsing enforces this).
             bool marketing = MarketingConsent == true;
             Registration.SetChannelConsents(marketing && EmailConsent, marketing && SmsConsent, marketing && PhoneConsent);

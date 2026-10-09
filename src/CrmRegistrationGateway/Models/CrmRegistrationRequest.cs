@@ -21,6 +21,9 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
         public string SourceCampaign { get; private set; }
         public string LeadSource { get; private set; }
         public string EventUrl { get; private set; }
+        // Country chosen with the phone number on the web form (code such as "DE" and its name).
+        public string CountryCode { get; private set; }
+        public string CountryName { get; private set; }
         // Channel-level commercial message consents; false means "not given", never "rejected".
         public bool EmailConsent { get; private set; }
         public bool SmsConsent { get; private set; }
@@ -48,6 +51,12 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
         internal void SetEventUrl(string eventUrl)
         {
             EventUrl = Normalize(eventUrl, 400, "eventUrl");
+        }
+
+        internal void SetCountry(string code, string name)
+        {
+            CountryCode = Normalize(code, 3, "countryCode").ToUpperInvariant();
+            CountryName = Normalize(name, 100, "countryName");
         }
 
         internal void SetChannelConsents(bool email, bool sms, bool call)

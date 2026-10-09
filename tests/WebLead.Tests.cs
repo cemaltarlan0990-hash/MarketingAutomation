@@ -118,7 +118,10 @@ internal static class WebLeadTests
             eventData.ValidateEventOrigin("https://altium.net");
             eventData.PrepareCrmRecord("event-v1", received);
             CrmRegistrationWriter.Write(fake, options, eventData.Registration);
-            Check((string)fake.Record["subject"] == "Etkinlik Kaydı: TEST Kayıttır Silmeyin", "Event title retained in Lead subject");
+            Check((string)fake.Record["subject"] == "TEST Kayıttır Silmeyin", "Lead subject is the event name only");
+            var renamed = new Dictionary<string, object>(eventPayload); renamed["eventTitle"] = "Altium Designer 26 Lansmanı";
+            var renamedForm = Parse(renamed); renamedForm.PrepareCrmRecord("event-v1", received);
+            Check(renamedForm.Registration.Subject == "Altium Designer 26 Lansmanı", "Subject follows whatever event name is sent");
             string description = (string)fake.Record["description"];
             Check(description.Contains("Mühendis") && description.Contains("İSTANBUL") && description.Contains("https://altium.net/tr/etkinlik-kayit/"), "Job title city and event URL stored");
             Check(description.Contains("Pazarlama onayı: Evet") && description.Contains("E-posta kanalı: Evet") && description.Contains("SMS kanalı: Hayır"), "Distinct marketing and channel declarations retained");
@@ -283,9 +286,41 @@ internal static class WebLeadTests
             var ankara = phoneRule("03122223344");
             Check((string)ankara.Record["telephone1"] == "0 312 222 33 44" && !ankara.Record.Contains("mobilephone"), "03/04 landline only in business phone");
             var foreignCell = phoneRule("+4915112345678");
-            Check((string)foreignCell.Record["mobilephone"] == "+4915112345678" && !foreignCell.Record.Contains("telephone1"), "Foreign number unchanged in mobile phone only");
+            Check((string)foreignCell.Record["mobilephone"] == "+4915112345678" && (string)foreignCell.Record["telephone1"] == "+4915112345678", "Foreign number unchanged in both business and mobile phone");
             var noPhone = phoneRule("");
             Check(!noPhone.Record.Contains("telephone1") && !noPhone.Record.Contains("mobilephone"), "No phone writes neither phone field");
+
+            Check(!noPhone.Record.Contains("twbs_ulke") && noPhone.CountryQueries == 0, "Country field stays off until configured");
+            Environment.SetEnvironmentVariable("CRM_COUNTRY_LOOKUP_ATTRIBUTE", "twbs_ulke");
+            Environment.SetEnvironmentVariable("CRM_COUNTRY_ENTITY", "twbs_ulke");
+            Environment.SetEnvironmentVariable("CRM_COUNTRY_NAME_ATTRIBUTE", "twbs_ulkeadi");
+            Environment.SetEnvironmentVariable("CRM_COUNTRY_CODE_ATTRIBUTE", "twbs_ulkekodu");
+            CrmOptions countryOptions = CrmOptions.Load();
+            Func<string, string, Tuple<RecordingService, WebLeadRequest>> country = (code, name) =>
+            {
+                var changes = new Dictionary<string, object>();
+                if (code != null) changes["countryCode"] = code;
+                if (name != null) changes["countryName"] = name;
+                var form = prepared(changes);
+                var service = new RecordingService();
+                CrmRegistrationWriter.Write(service, countryOptions, form.Registration);
+                return Tuple.Create(service, form);
+            };
+            Func<RecordingService, string> linked = service => service.Record.Contains("twbs_ulke")
+                ? (string)service.Countries.First(r => r.Id == ((EntityReference)service.Record["twbs_ulke"]).Id)["twbs_ulkeadi"] : null;
+            var germany = country("DE", "Almanya");
+            Check(linked(germany.Item1) == "ALMANYA" && ((EntityReference)germany.Item1.Record["twbs_ulke"]).LogicalName == "twbs_ulke", "Phone country linked to the CRM country (+49 Almanya)");
+            Check(germany.Item2.Registration.Description.Contains("Ülke: Almanya"), "Country kept in the description");
+            Check(linked(country("us", "Amerika Birleşik Devletleri").Item1) == "AMERİKA BİRLEŞİK DEVLETLERİ", "+1 Amerika linked; Turkish case rules applied");
+            Check(linked(country("GB", "Birleşik Krallık").Item1) == "BİRLEŞİK KRALLIK", "Name matches when the CRM code differs (UK vs GB)");
+            Check(linked(country("IN", "Hindistan").Item1) == "HİNDİSTAN", "Name matches when the CRM code is wrong (India stored as HR)");
+            Check(linked(country("TR", "Turkey").Item1) == "TÜRKİYE", "Unique code used when the name differs");
+            Check(linked(country("HR", null).Item1) == null, "Code shared by two countries is not linked");
+            Check(linked(country("XX", "Atlantis").Item1) == null, "Unknown country leaves the field empty");
+            var noCountry = country(null, null).Item1;
+            Check(!noCountry.Record.Contains("twbs_ulke") && noCountry.CountryQueries == 0, "No country sent, no lookup");
+            Reject<RequestValidationException>(() => prepared(new Dictionary<string, object> { { "countryCode", "D3" } }), "Country code must be letters");
+            Reject<RequestValidationException>(() => prepared(new Dictionary<string, object> { { "countryCode", "DEUT" } }), "Country code length limited");
 
             Func<string, string> tr = CrmRegistrationWriter.NormalizeTurkishPhone;
             Check(tr("+905551112233") == "05551112233" && tr("0555 111 22 33") == "05551112233" && tr("5551112233") == "05551112233"
@@ -336,6 +371,19 @@ internal static class WebLeadTests
         public readonly Guid CampaignId = Guid.NewGuid();
         public string LastCampaignName;
         public bool FailLeadUpdates;
+        // Mirrors TEST CRM country rows: UK instead of GB, and HR shared by two countries.
+        public readonly List<Entity> Countries = new[]
+        {
+            Country("TÜRKİYE", "TR"), Country("ALMANYA", "DE"), Country("AMERİKA BİRLEŞİK DEVLETLERİ", "US"),
+            Country("BİRLEŞİK KRALLIK", "UK"), Country("HIRVATİSTAN", "HR"), Country("HİNDİSTAN", "HR")
+        }.ToList();
+        public int CountryQueries;
+        private static Entity Country(string name, string code)
+        {
+            var row = new Entity("twbs_ulke", Guid.NewGuid());
+            row["twbs_ulkeadi"] = name; row["twbs_ulkekodu"] = code;
+            return row;
+        }
         public readonly List<Entity> LeadUpdates = new List<Entity>();
         public readonly List<Entity> Activities = new List<Entity>();
         public Guid Create(Entity entity) { Record = entity; Creates++; return Result; }
@@ -386,6 +434,16 @@ internal static class WebLeadTests
             {
                 LastCampaignName = (string)expression.Criteria.Conditions.First(c => c.AttributeName == "name").Values[0];
                 for (int i = 0; i < CampaignMatches; i++) result.Entities.Add(new Entity("campaign", i == 0 ? CampaignId : Guid.NewGuid()));
+                return result;
+            }
+            if (expression.EntityName == "twbs_ulke")
+            {
+                // Dataverse text equality ignores case; any OR condition may match.
+                CountryQueries++;
+                var turkish = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
+                var wanted = expression.Criteria.Filters.SelectMany(f => f.Conditions).ToList();
+                foreach (var row in Countries.Where(r => wanted.Any(c => string.Compare((string)r[c.AttributeName], (string)c.Values[0], turkish, System.Globalization.CompareOptions.IgnoreCase) == 0)))
+                    result.Entities.Add(row);
                 return result;
             }
             if (expression.EntityName == "altium_iysaktivitesi")

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
@@ -13,6 +15,7 @@ namespace RelatedEntegrasyonu.CrmGateway.Services
     internal static class CrmRegistrationWriter
     {
         private const int TurkishLanguageCode = 1055;
+        private static readonly CultureInfo Turkish = CultureInfo.GetCultureInfo("tr-TR");
 
         // Choice labels rarely change; cached per process ("entity.attribute" → label → value).
         private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, int>> ChoiceCache =
@@ -39,12 +42,11 @@ namespace RelatedEntegrasyonu.CrmGateway.Services
             string formatted = turkish == null ? request.Phone : FormatTurkishPhone(turkish);
             if (!string.IsNullOrWhiteSpace(options.BusinessPhoneAttribute))
             {
-                // Business rule (2026-10-06): Turkish mobiles (05…) to both phones, Turkish
-                // landlines (02/03/04…) only to the business phone, foreign numbers only to mobile.
-                bool mobile = turkish == null || turkish.StartsWith("05", StringComparison.Ordinal);
-                if (turkish != null)
-                    SetWhenMapped(record, options.BusinessPhoneAttribute, formatted);
-                if (mobile)
+                // Business rule (2026-10-06/09): Turkish landlines (02/03/04…) only to the business
+                // phone; Turkish mobiles (05…) and foreign numbers (unchanged) to both phones.
+                bool landline = turkish != null && !turkish.StartsWith("05", StringComparison.Ordinal);
+                SetWhenMapped(record, options.BusinessPhoneAttribute, formatted);
+                if (!landline)
                     SetWhenMapped(record, options.PhoneAttribute, formatted);
             }
             else if (string.IsNullOrWhiteSpace(options.IysPhoneAttribute))
@@ -72,6 +74,9 @@ namespace RelatedEntegrasyonu.CrmGateway.Services
             Guid? cityId = FindCity(service, options, request.City);
             if (cityId.HasValue)
                 record[options.CityLookupAttribute] = new EntityReference(options.CityEntity, cityId.Value);
+            Guid? countryId = FindCountry(service, options, request.CountryCode, request.CountryName);
+            if (countryId.HasValue)
+                record[options.CountryLookupAttribute] = new EntityReference(options.CountryEntity, countryId.Value);
 
             // Web form posts carry a consent declaration; legacy posts get no source defaults.
             if (request.KvkkConsent == true)
@@ -126,6 +131,42 @@ namespace RelatedEntegrasyonu.CrmGateway.Services
 
             EntityCollection matches = service.RetrieveMultiple(query);
             return matches.Entities.Count > 0 ? matches.Entities[0].Id : (Guid?)null;
+        }
+
+        // Business rule (2026-10-09): the country chosen with the phone number fills the Lead country.
+        // CRM country codes are not all ISO (UK for GB) and some repeat (HR, KW, SL, GI), so the
+        // name is tried first, then the code; nothing is linked unless exactly one active row matches.
+        private static Guid? FindCountry(IOrganizationService service, CrmOptions options, string code, string name)
+        {
+            if (!options.HasCountryLookup || (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name)))
+                return null;
+
+            var query = new QueryExpression(options.CountryEntity)
+            {
+                ColumnSet = new ColumnSet(options.CountryNameAttribute, options.CountryCodeAttribute),
+                TopCount = 20
+            };
+            query.Criteria.AddCondition("statecode", ConditionOperator.Equal, 0);
+            FilterExpression either = query.Criteria.AddFilter(LogicalOperator.Or);
+            if (!string.IsNullOrWhiteSpace(name))
+                either.AddCondition(options.CountryNameAttribute, ConditionOperator.Equal, name);
+            if (!string.IsNullOrWhiteSpace(code))
+                either.AddCondition(options.CountryCodeAttribute, ConditionOperator.Equal, code);
+
+            DataCollection<Entity> rows = service.RetrieveMultiple(query).Entities;
+            Guid? match = SingleMatch(rows, options.CountryNameAttribute, name) ?? SingleMatch(rows, options.CountryCodeAttribute, code);
+            if (!match.HasValue)
+                System.Diagnostics.Trace.TraceWarning("Country not linked. Code={0}; Candidates={1}", code, rows.Count);
+            return match;
+        }
+
+        private static Guid? SingleMatch(IEnumerable<Entity> rows, string attribute, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+            List<Entity> hits = rows.Where(row => string.Compare((row.GetAttributeValue<string>(attribute) ?? "").Trim(),
+                value.Trim(), Turkish, CompareOptions.IgnoreCase) == 0).Take(2).ToList();
+            return hits.Count == 1 ? hits[0].Id : (Guid?)null;
         }
 
         // Campaign names are not unique in CRM; link only an unambiguous active campaign.
