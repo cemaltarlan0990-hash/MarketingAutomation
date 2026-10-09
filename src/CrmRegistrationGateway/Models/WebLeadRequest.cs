@@ -99,27 +99,11 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
 
         public void PrepareCrmRecord(string consentVersion, DateTime receivedAtUtc)
         {
-            // The form's acknowledgement is recorded separately from marketing permission.
-            // No donotbulkemail/marketing flag is inferred from this checkbox.
-            var description = new StringBuilder(Message);
-            description.AppendLine().AppendLine();
-            AddLine(description, "Unvan", JobTitle);
-            AddLine(description, "Şehir", City);
-            AddLine(description, "Ülke", CountryName.Length != 0 ? CountryName : CountryCode);
-            AddLine(description, "Etkinlik formu", EventUrl);
-            if (MarketingConsent.HasValue)
-            {
-                AddLine(description, "Pazarlama onayı", MarketingConsent.Value ? "Evet" : "Hayır");
-                AddLine(description, "E-posta kanalı", EmailConsent ? "Evet" : "Hayır");
-                AddLine(description, "SMS kanalı", SmsConsent ? "Evet" : "Hayır");
-                AddLine(description, "Telefon kanalı", PhoneConsent ? "Evet" : "Hayır");
-            }
-            AddLine(description, "Form onayı", "true");
-            AddLine(description, "Metin sürümü", consentVersion);
-            AddLine(description, "Alınma zamanı (UTC)", receivedAtUtc.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture));
-            // Business rule (2026-10-09): the Lead subject is the event name exactly as on the page.
-            Registration.SetWebFormDetails(EventTitle.Length == 0 ? "Web sitesi form talebi" : EventTitle,
-                description.ToString());
+            // Business rules (2026-10-09): the subject is the event name exactly as on the page and
+            // the description is only the visitor's message. Profile, country, event URL and
+            // permissions have their own Lead fields; consentVersion and receivedAtUtc are no
+            // longer written to CRM (the website keeps its own registration record).
+            Registration.SetWebFormDetails(EventTitle.Length == 0 ? "Web sitesi form talebi" : EventTitle, Message);
             // Parsing already rejected requests without consent:true.
             Registration.SetProfileDetails(JobTitle, City, true);
             Registration.SetSourceDetails(SourceCampaign, LeadSource);
@@ -142,11 +126,6 @@ namespace RelatedEntegrasyonu.CrmGateway.Models
                 throw new RequestValidationException("Etkinlik form adresi geçersiz.");
             if (string.IsNullOrWhiteSpace(EventTitle))
                 throw new RequestValidationException("Etkinlik başlığı zorunludur.");
-        }
-
-        private static void AddLine(StringBuilder text, string label, string value)
-        {
-            if (!string.IsNullOrEmpty(value)) text.Append(label).Append(": ").AppendLine(value);
         }
 
         private static bool? Boolean(Dictionary<string, object> data, string name, bool required)

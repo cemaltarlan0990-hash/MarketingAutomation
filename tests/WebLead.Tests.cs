@@ -50,7 +50,7 @@ internal static class WebLeadTests
             var received = new DateTime(2026, 9, 30, 12, 0, 0, DateTimeKind.Utc);
             data.PrepareCrmRecord("form-v1", received);
             Check(data.Registration.Description.Contains("Ürün hakkında bilgi\nistiyorum."), "Message preserved");
-            Check(data.Registration.Description.Contains("form-v1") && data.Registration.Description.Contains("2026-09-30T12:00:00"), "Consent version and server timestamp stored");
+            Check(data.Registration.Description == "Ürün hakkında bilgi\nistiyorum.", "Description is only the visitor's message");
             Check(data.Registration.Description.Length <= 2000, "Description within CRM limit");
             foreach (object consent in new object[] { false, "true", 1, null })
             {
@@ -123,8 +123,13 @@ internal static class WebLeadTests
             var renamedForm = Parse(renamed); renamedForm.PrepareCrmRecord("event-v1", received);
             Check(renamedForm.Registration.Subject == "Altium Designer 26 Lansmanı", "Subject follows whatever event name is sent");
             string description = (string)fake.Record["description"];
-            Check(description.Contains("Mühendis") && description.Contains("İSTANBUL") && description.Contains("https://altium.net/tr/etkinlik-kayit/"), "Job title city and event URL stored");
-            Check(description.Contains("Pazarlama onayı: Evet") && description.Contains("E-posta kanalı: Evet") && description.Contains("SMS kanalı: Hayır"), "Distinct marketing and channel declarations retained");
+            Check(description == "Ürün hakkında bilgi\nistiyorum.", "Event form description is only the message");
+            Check(!description.Contains("Mühendis") && !description.Contains("İSTANBUL") && !description.Contains("Pazarlama") && !description.Contains("https://"), "Field values are not repeated in the description");
+            var silent = new Dictionary<string, object>(eventPayload); silent["message"] = "";
+            var silentForm = Parse(silent); silentForm.PrepareCrmRecord("event-v1", received);
+            var noMessage = new RecordingService();
+            CrmRegistrationWriter.Write(noMessage, options, silentForm.Registration);
+            Check(!noMessage.Record.Contains("description"), "Empty message leaves the description empty");
             Reject<RequestValidationException>(() => eventData.ValidateEventOrigin("https://attacker.example"), "Cross-origin event URL rejected");
             var wrongUrl = new Dictionary<string, object>(eventPayload); wrongUrl["eventUrl"] = "https://altium.net/tr/iletisim";
             Reject<RequestValidationException>(() => Parse(wrongUrl).ValidateEventOrigin("https://altium.net"), "Non-event URL rejected");
@@ -156,7 +161,7 @@ internal static class WebLeadTests
             Check(!cities.Record.Contains("twbs_elektronikiletionayi") && !cities.Record.Contains("altium_iysepostadurumu"), "Commercial message and IYS fields untouched");
             var unknownCity = new RecordingService();
             CrmRegistrationWriter.Write(unknownCity, profileOptions, eventData.Registration);
-            Check(unknownCity.Creates == 1 && !unknownCity.Record.Contains("twbs_sehir") && ((string)unknownCity.Record["description"]).Contains("İSTANBUL"), "Unknown city keeps the registration and the description");
+            Check(unknownCity.Creates == 1 && !unknownCity.Record.Contains("twbs_sehir"), "Unknown city keeps the registration");
             var legacyProfile = new RecordingService();
             CrmRegistrationWriter.Write(legacyProfile, profileOptions, legacy);
             Check(!legacyProfile.Record.Contains("twbs_kvkkonayi") && legacyProfile.CityQueries == 0, "Legacy form post claims no KVKK consent and skips city lookup");
@@ -310,7 +315,7 @@ internal static class WebLeadTests
                 ? (string)service.Countries.First(r => r.Id == ((EntityReference)service.Record["twbs_ulke"]).Id)["twbs_ulkeadi"] : null;
             var germany = country("DE", "Almanya");
             Check(linked(germany.Item1) == "ALMANYA" && ((EntityReference)germany.Item1.Record["twbs_ulke"]).LogicalName == "twbs_ulke", "Phone country linked to the CRM country (+49 Almanya)");
-            Check(germany.Item2.Registration.Description.Contains("Ülke: Almanya"), "Country kept in the description");
+            Check(!germany.Item2.Registration.Description.Contains("Almanya"), "Country is not repeated in the description");
             Check(linked(country("us", "Amerika Birleşik Devletleri").Item1) == "AMERİKA BİRLEŞİK DEVLETLERİ", "+1 Amerika linked; Turkish case rules applied");
             Check(linked(country("GB", "Birleşik Krallık").Item1) == "BİRLEŞİK KRALLIK", "Name matches when the CRM code differs (UK vs GB)");
             Check(linked(country("IN", "Hindistan").Item1) == "HİNDİSTAN", "Name matches when the CRM code is wrong (India stored as HR)");

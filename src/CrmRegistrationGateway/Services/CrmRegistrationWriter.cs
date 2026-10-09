@@ -66,8 +66,7 @@ namespace RelatedEntegrasyonu.CrmGateway.Services
             SetWhenMapped(record, "description", request.Description);
             SetWhenMapped(record, options.EventUrlAttribute, request.EventUrl);
 
-            // Profile fields are written only when their CRM columns are configured;
-            // the description keeps the same values as an audit trail either way.
+            // Profile fields are written only when their CRM columns are configured.
             SetWhenMapped(record, options.JobTitleAttribute, request.JobTitle);
             if (request.KvkkConsent == true && !string.IsNullOrWhiteSpace(options.KvkkConsentAttribute))
                 record[options.KvkkConsentAttribute] = true;
